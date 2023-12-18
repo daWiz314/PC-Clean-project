@@ -51,22 +51,26 @@ function BootOptions {
     Write-Host "1) Boot into UEFI settings"
     Write-Host "2) Boot into advanced startup"
     Write-Host "3) Reboot"
-    $option = Read-Host "Enter your choice: "
+    Write-Host "4) Back to main menu"
+    $option = getKeyPress
     switch ($option) {
         1 {
             Clear-Host
             Write-Host "Booting into UEFI settings..."
-            shutdown /r /fw /t 3
+            shutdown /r /f /fw /t 3
         }
         2 {
             Clear-Host
             Write-Host "Booting into advanced startup..."
-            shutdown /r /o /t 3
+            shutdown /r /f /o /t 3
         }
         3 {
             Clear-Host
             Write-Host "Rebooting..."
-            shutdown /r /t 3
+            shutdown /r /f /t 3
+        }
+        4 {
+            main_menu
         }
     }
 }
@@ -85,7 +89,7 @@ function ShowOptions {
         Write-Host "1) Turn off logs"
     }
     Write-Host "2) Back to main menu"
-    $option = Read-Host "Enter your choice: "
+    $option = getKeyPress
     switch ($option) {
         1 {
             if ($script:logs -eq 0) {
@@ -100,9 +104,15 @@ function ShowOptions {
     }
 }
 
+function getKeyPress {
+    $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    $key = $pressedKey.Character
+    return $key
+}
+
 function MainMenu {
     while ($true) {
-        Clear-Host
+       # Clear-Host
         if ($script:logs -eq 0) {
             Write-Host "Logs turned off!" -ForegroundColor Red
         } else {
@@ -116,7 +126,7 @@ function MainMenu {
         Write-Host "5) Boot Options"
         Write-Host "6) Options"
         Write-Host "q) Exit"
-        $choice = Read-Host "Enter your choice: "
+        $choice = getKeyPress
 
         switch ($choice) {
             1 {
@@ -144,7 +154,6 @@ function MainMenu {
         }
     }
 }
-
 
 $script:logs = 0
 MainMenu
