@@ -104,6 +104,110 @@ function ShowOptions {
     }
 }
 
+function userControl {
+    Clear-Host
+    Write-Host "Still working on this..."
+    sleep 3
+    mainMenu
+    Write-Host "Choose a user to select:"
+    for ($i = 0; $i -lt $users.Length; $i++) {
+        Write-Host "$i) $users[$i]"
+    }
+    $choice = getKeyPress
+    Write-Host "You chose $users[$choice]"
+    Write-Host "1) Reset password"
+    Write-Host "2) Delete user"
+    Write-Host "3) Convert user to local account"
+    Write-Host "4) Create new user"
+    Write-Host "q) Back to main menu"
+    $option = getKeyPress
+    switch ($option) {
+        1 {
+            Clear-Host
+            Write-Host "Changing password for $users[$choice]"
+            resetUserPassword $users[$choice]
+        }
+        2 {
+            Clear-Host
+            Write-Host "Deleting user $users[$choice]"
+            net user $users[$choice] /delete
+        }
+        3 {
+            Clear-Host
+            Write-Host "Still working on this..."
+            userControl
+        }
+        4 {
+            Clear-Host
+            Write-Host "Type in a password for the new user:" -ForegroundColor Green
+            $password = Read-Host -AsSecureString
+            Clear-Host
+            Write-Host "Full Name for user:" -ForegroundColor Green
+            $fullName = Read-Host
+            Clear-Host
+            Write-Host "Description for user:" -ForegroundColor Green
+            $description = Read-Host
+            Clear-Host
+            Write-Host "Username for user:" -ForegroundColor Green
+            $username = Read-Host
+            Clear-Host
+            Write-Host "Add to local administrators group? (y/n)" -ForegroundColor Green
+            $choice = getKeyPress
+            if ($choice -eq 'y') {
+                $group = 'Administrators'
+            } else {
+                $group = 'Users'
+            }
+            Write-Host "Creating user $username..."
+            if ($password -eq $null) {
+                New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires -Group $group
+            } else {
+                New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires $password -Group $group
+            }
+            userControl
+        }
+        "q" {
+            mainMenu
+        }
+    }
+
+    userControl
+}
+
+function resetUserPassword {
+    param (
+        [Parameter(Mandatory=$true)][string]$user
+    )
+    Clear-Host
+    Write-Host "Resetting user password..."
+    net user $user *
+
+    userControl
+}
+
+function deleteUser {
+    param (
+        [Parameter(Mandatory=$true)][string]$user
+    )
+    Clear-Host
+    Write-Host "Are you sure you want to delete $user? This action cannot be undone. (y/n)" -ForegroundColor Red
+    $choice = getKeyPress
+    if ($choice -eq 'n') {
+        userControl
+    }
+    Clear-Host
+    Write-Host "Are you really sure you want to delete $user? This action cannot be undone. (y/n)" -ForegroundColor Red -BackgroundColor white
+    $choice = getKeyPress
+    if ($choice -eq 'n') {
+        userControl
+    }
+    Clear-Host
+    Write-Host "Deleting user..."
+    net user $user /delete
+
+    userControl
+}
+
 function getKeyPress {
     $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     $key = $pressedKey.Character
@@ -125,6 +229,7 @@ function MainMenu {
         Write-Host "4) Disable BitLocker"
         Write-Host "5) Boot Options"
         Write-Host "6) Options"
+        Write-Host "7) User Control"
         Write-Host "q) Exit"
         $choice = getKeyPress
 
@@ -146,6 +251,9 @@ function MainMenu {
             }
             6 {
                 ShowOptions
+            }
+            7 {
+                userControl
             }
             'q'{
                 Clear-Host
