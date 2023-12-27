@@ -327,5 +327,5 @@ function MainMenu {
     }
 }
 
-$script:logs = 0
+$script:logs = 1
 MainMenu
