@@ -1,4 +1,4 @@
-$VERSION = "1.0.0"
+$VERSION = "1.0.2"
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -17,6 +17,7 @@ function confirm {
         confirm
     }
 }
+
 function StandardCleanup {
     if ($script:logs -eq 0) {
         StandardCleanupNoLogs
@@ -133,7 +134,7 @@ function ShowOptions {
         1 {
             if ($script:logs -eq 0) {
                 $script:logs = 1
-                mkdir C:\Users\$env:USERNAME\log
+               
             } else {
                 $script:logs = 0
             }
@@ -142,6 +143,10 @@ function ShowOptions {
             continue
         }
     }
+}
+
+function create_folders {
+    mkdir C:\Users\$env:USERNAME\log
 }
 
 function getListOfUsers {
@@ -328,4 +333,5 @@ function MainMenu {
 }
 
 $script:logs = 1
+create_folders
 MainMenu
