@@ -43,7 +43,7 @@ function StandardCleanupNoLogs {
 
 function StandardCleanupLogs {
     Clear-Host
-    Write-Host "Starting standard cleanup with logs in user account folder log folder..."
+    Write-Host "Starting standard cleanup with logs in user account folder"
     Write-Host "Logs will be located in C:\Users\$env:USERNAME\log"
     Write-Host "Running DISM" -ForegroundColor Green
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
