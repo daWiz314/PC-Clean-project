@@ -146,7 +146,8 @@ function ShowOptions {
 
 function getListOfUsers {
     [System.Collections.ArrayList]$users = net user | Select-String -Pattern "^[A-Za-z0-9]" | Select-Object -ExpandProperty Line | ForEach-Object { $_.Trim() }
-    #remove the spaces from inbetween the users
+    #remove the spaces from in-between the users
+    #For some reason the list will contain the users like USER1             USER2, so we want to get rid of all that extra space
     $users = $users -split '  '
     $users = $users | Where-Object { $_ -ne "" }
     $users.RemoveAt(0)
