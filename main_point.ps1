@@ -1,4 +1,4 @@
-
+$VERSION = "1.0.0"
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -285,7 +285,7 @@ function MainMenu {
             Write-Host "Logs turned on!" -ForegroundColor darkGreen
         }
         Write-Host "Welcome to the Quick Fix Script!" -ForegroundColor Blue
-        Write-Host "Main Menu" -ForegroundColor Green
+        Write-Host "Main Menu "$VERSION -ForegroundColor Green
         Write-Host "1) DISM, SFC, CHKDSK, and reboot"
         Write-Host "2) Create Admin account, and switch to it"
         Write-Host "3) Disable Admin account"
