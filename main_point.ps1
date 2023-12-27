@@ -1,4 +1,7 @@
-$VERSION = "1.0.3"
+
+
+$VERSION = "1.0.4"
+
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -152,7 +155,7 @@ function create_folders {
 function getListOfUsers {
     [System.Collections.ArrayList]$users = net user | Select-String -Pattern "^[A-Za-z0-9]" | Select-Object -ExpandProperty Line | ForEach-Object { $_.Trim() }
     #remove the spaces from in-between the users
-    #For some reason the list will contain the users like USER1             USER2, so we want to get rid of all that extra space
+    #For some reason the list will contain the users like USER1     (bunch of spaces here in case you can't tell)        USER2, so we want to get rid of all that extra space
     $users = $users -split '  '
     $users = $users | Where-Object { $_ -ne "" }
     $users.RemoveAt(0)
@@ -262,6 +265,7 @@ function userControl {
         3 {
             Clear-Host
             Write-Host "Still working on this..."
+            Start-Sleep 1.5
             userControl
         }
         4 {
@@ -295,7 +299,7 @@ function MainMenu {
         #Write-Host "1) DISM, SFC, CHKDSK, and reboot"
         #Write-Host "2) Create Admin account, and switch to it"
         #Write-Host "3) Disable Admin account"
-        Write-Host "4) Disable BitLocker"
+        #Write-Host "4) Disable BitLocker"
         #Write-Host "5) Boot Options"
         Write-Host "6) Options"
         Write-Host "7) User Control"
@@ -331,6 +335,8 @@ function MainMenu {
         }
     }
 }
+
+$ui.WindowTitle = "Quick Fix Script"
 
 $script:logs = 1
 create_folders
