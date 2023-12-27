@@ -1,4 +1,4 @@
-$VERSION = "1.0.2"
+$VERSION = "1.0.3"
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -96,17 +96,17 @@ function BootOptions {
     switch ($option) {
         1 {
             Clear-Host
-            Write-Host "Booting into UEFI settings..."
+            Write-Host "Booting into UEFI settings in 3 seconds..."
             shutdown /r /f /fw /t 3
         }
         2 {
             Clear-Host
-            Write-Host "Booting into advanced startup..."
+            Write-Host "Booting into advanced startup in 3 seconds..."
             shutdown /r /f /o /t 3
         }
         3 {
             Clear-Host
-            Write-Host "Rebooting..."
+            Write-Host "Rebooting in 3 seconds..."
             shutdown /r /f /t 3
         }
         4 {
