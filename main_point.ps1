@@ -1,6 +1,6 @@
 
 
-$VERSION = "1.0.4"
+$VERSION = "1.0.5"
 
 function confirm {
     param (
@@ -21,6 +21,24 @@ function confirm {
     }
 }
 
+# Count down function to streamline the code
+
+function countdown {
+    param (
+        [Parameter(Mandatory=$true)][int]$seconds
+        [Parameter(Mandatory=$true)][string]$message
+    )
+    Clear-Host
+    Write-Host $message " IN " $seconds " SECONDS" -ForegroundColor Red
+    Start-Sleep 1
+    for ($i=$seconds-1; $i -gt 0; $i--) {
+        Clear-Host
+        Write-Host $message " IN " $i " SECONDS" -ForegroundColor Red
+        Start-Sleep 1
+        return # To actually do the thing in blank seconds
+    }
+}
+
 function StandardCleanup {
     if ($script:logs -eq 0) {
         StandardCleanupNoLogs
@@ -35,13 +53,7 @@ function StandardCleanupNoLogs {
     Dism.exe /online /cleanup-image /restorehealth
     sfc.exe /scannow
     Write-Host y | chkdsk /f /r /x /b
-    Write-Host "SHUTTING DOWN IN 10 SECONDS" -ForegroundColor Red
-    Start-Sleep 1
-    for ($i=9; $i -gt 0; $i--) {
-        Clear-Host
-        Write-Host "SHUTTING DOWN IN $i SECONDS" -ForegroundColor Red
-        Start-Sleep 1
-    }
+    countdown(10, "SHUTTING DOWN")
     shutdown /r /t 0
 }
 
@@ -57,13 +69,7 @@ function StandardCleanupLogs {
     sfc.exe /scannow >> C:\Users\$env:USERNAME\log\SFC.log
     Write-Host y | chkdsk /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
-    Write-Host "SHUTTING DOWN IN 10 SECONDS" -ForegroundColor Red
-    Start-Sleep 1
-    for ($i=9; $i -gt 0; $i--) {
-        Clear-Host
-        Write-Host "SHUTTING DOWN IN $i SECONDS" -ForegroundColor Red
-        Start-Sleep 1
-    }
+    countdown(10, "SHUTTING DOWN")
     shutdown /r /t 0
     getkeyPress
 }
@@ -99,18 +105,18 @@ function BootOptions {
     switch ($option) {
         1 {
             Clear-Host
-            Write-Host "Booting into UEFI settings in 3 seconds..."
-            shutdown /r /f /fw /t 3
+            countdown(3, "Booting into UEFI Settings")
+            shutdown /r /f /fw /t 00
         }
         2 {
             Clear-Host
-            Write-Host "Booting into advanced startup in 3 seconds..."
-            shutdown /r /f /o /t 3
+            countdown(3, "Booting into Advanced Startup")
+            shutdown /r /f /o /t 00
         }
         3 {
             Clear-Host
-            Write-Host "Rebooting in 3 seconds..."
-            shutdown /r /f /t 3
+            countdown(3, "Rebooting")
+            shutdown /r /f /t 00
         }
         4 {
             main_menu
@@ -177,7 +183,7 @@ function selectUser {
         return
     }
     Write-Host "You chose: " $users[$choice]
-    Start-Sleep 1.5
+    Start-Sleep 1
     Clear-Host
     return $users[$choice]
 }
