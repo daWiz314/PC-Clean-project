@@ -25,7 +25,7 @@ function confirm {
 
 function countdown {
     param (
-        [Parameter(Mandatory=$true)][int]$seconds
+        [Parameter(Mandatory=$true)][int]$seconds,
         [Parameter(Mandatory=$true)][string]$message
     )
     Clear-Host
