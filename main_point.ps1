@@ -1,6 +1,6 @@
 
 
-$VERSION = "1.0.6"
+$VERSION = "1.0.7"
 
 function confirm {
     param (
@@ -35,8 +35,8 @@ function countdown {
         Clear-Host
         Write-Host $message " IN " $i " SECONDS" -ForegroundColor Red
         Start-Sleep 1
-        return # To actually do the thing in blank seconds
     }
+    return # To actually do the thing in $i seconds
 }
 
 function StandardCleanup {
@@ -240,7 +240,14 @@ function deleteUser {
     if ($result -eq 1) {
         $result2 = confirm("CONFIRM THE ACTION: Deleting user: "+$user)
         if ($result2 -eq 1) {
-            net user $user /delete
+            Try {
+                net user $user /delete
+            } Catch {
+                Write-Host "Unable to delete user!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return
+            }
+            Write-Host "User deleted!" -ForegroundColor Green
             Start-Sleep 1.5
         } else {
             return
@@ -291,8 +298,7 @@ function userControl {
     Write-Host "Choose an option:"
     Write-Host "1) Reset password"
     Write-Host "2) Delete user"
-    Write-Host "3) Convert user to local account"
-    Write-Host "4) Create new user"
+    Write-Host "3) Create new user"
     Write-Host "q) Back to main menu"
     $option = getKeyPress
     switch ($option) {
@@ -303,12 +309,6 @@ function userControl {
             deleteUser
         }
         3 {
-            Clear-Host
-            Write-Host "Still working on this..."
-            Start-Sleep 1.5
-            userControl
-        }
-        4 {
             createNewUser
         }
         "q" {
