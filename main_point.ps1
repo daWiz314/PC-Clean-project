@@ -35,8 +35,8 @@ function countdown {
         Clear-Host
         Write-Host $message " IN " $i " SECONDS" -ForegroundColor Red
         Start-Sleep 1
-        return # To actually do the thing in blank seconds
     }
+    return # To actually do the thing in blank seconds
 }
 
 function StandardCleanup {
