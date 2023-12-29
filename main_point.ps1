@@ -335,7 +335,6 @@ function MainMenu {
         }
         Write-Host "Welcome to the Quick Fix Script!" -ForegroundColor Blue
         Write-Host "Main Menu "$VERSION -ForegroundColor Green
-        Write-Host "DEV VERSION" -ForegroundColor Red
         Write-Host "1) DISM, SFC, CHKDSK, and reboot"
         Write-Host "2) Create Admin account, and switch to it"
         Write-Host "3) Disable Admin account"
