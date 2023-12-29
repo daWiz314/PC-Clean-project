@@ -165,7 +165,7 @@ function ShowOptions {
     } else {
         Write-Host "Logs turned on!"  -ForegroundColor Green
     }
-    Write-Host "Options:"
+    Write-Host "Options" -ForegroundColor Green
     if ($script:logs -eq 0) {
         Write-Host "1) Turn on logs"
     } else {
