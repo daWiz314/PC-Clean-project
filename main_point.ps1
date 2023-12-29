@@ -254,7 +254,16 @@ function resetPassword {
     $user = selectUser
     $result = confirm("Resetting password for user: "+$user)
     if ($result -eq 1) {
-        net user $user *
+        Try {
+            net user $user *
+        } Catch {
+            Write-Host "Unable to reset password!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return
+        }
+        Write-Host "Password reset!" -ForegroundColor Green
+        Start-Sleep 1.5
+        return
     } else {
         return
     }
@@ -305,15 +314,29 @@ function createNewUser {
         $group = 'Users'
     }
     Write-Host "Creating user $username..."
-    if ($password) {
-        New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires -NoPassword
-    } else {
-        New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires $password
+    Try {
+        if ($password) {
+            New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires -NoPassword
+        } else {
+            New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires $password
+        }
+    } Catch {
+        Write-Host "Unable to create user!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
     }
 
-    if ($group -eq 'Administrators') {
-        Add-LocalGroupMember -Group "Administrators" -Member $username
+    Try {
+        if ($group -eq 'Administrators') {
+            Add-LocalGroupMember -Group "Administrators" -Member $username
+        }
+    } catch {
+        Write-Host "Unable to add user to Administrators group!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
     }
+
+    Write-Host "User created!" -ForegroundColor Green
     Start-Sleep 1.5
     return
 
