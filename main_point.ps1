@@ -291,8 +291,7 @@ function userControl {
     Write-Host "Choose an option:"
     Write-Host "1) Reset password"
     Write-Host "2) Delete user"
-    Write-Host "3) Convert user to local account"
-    Write-Host "4) Create new user"
+    Write-Host "3) Create new user"
     Write-Host "q) Back to main menu"
     $option = getKeyPress
     switch ($option) {
@@ -303,12 +302,6 @@ function userControl {
             deleteUser
         }
         3 {
-            Clear-Host
-            Write-Host "Still working on this..."
-            Start-Sleep 1.5
-            userControl
-        }
-        4 {
             createNewUser
         }
         "q" {
