@@ -1,6 +1,6 @@
 
 
-$VERSION = "1.0.6"
+$VERSION = "1.0.7"
 
 function confirm {
     param (
@@ -240,7 +240,14 @@ function deleteUser {
     if ($result -eq 1) {
         $result2 = confirm("CONFIRM THE ACTION: Deleting user: "+$user)
         if ($result2 -eq 1) {
-            net user $user /delete
+            Try {
+                net user $user /delete
+            } Catch {
+                Write-Host "Unable to delete user!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return
+            }
+            Write-Host "User deleted!" -ForegroundColor Green
             Start-Sleep 1.5
         } else {
             return
