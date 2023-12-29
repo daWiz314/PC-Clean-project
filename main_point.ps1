@@ -229,22 +229,23 @@ function create_folders {
                 Start-Sleep 1.5
                 return 0
         }
-        Try {
-            mkdir C:\Users\$env:USERNAME\logs\$date
-            create_folders
-        } Catch {
+            Try {
+                mkdir C:\Users\$env:USERNAME\logs\$date
+                create_folders
+            } Catch {
+                Write-Host "Unable to create log folder!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return 0
+            }
+        } else {
+            Try {
+                mkdir C:\Users\$env:USERNAME\logs
+                create_folders
+            } Catch {
             Write-Host "Unable to create log folder!" -ForegroundColor Red
             Start-Sleep 1.5
             return 0
-        }
-    } else {
-        Try {
-            mkdir C:\Users\$env:USERNAME\logs
-            create_folders
-        } Catch {
-        Write-Host "Unable to create log folder!" -ForegroundColor Red
-        Start-Sleep 1.5
-        return 0
+            }
         }
     }
 }
