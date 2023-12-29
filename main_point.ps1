@@ -1,7 +1,7 @@
 
 
 $VERSION = "1.0.7"
-
+$LOGSPATH = ""
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -218,9 +218,20 @@ function ShowOptions {
 function create_folders {
     if (Test-Path -Path C:\Users\$env:USERNAME\logs) {
         $date = Get-Date -Format "MM-dd-yyyy"
+        if (Test-Path -Path C:\Users\$env:USERNAME\logs\$date) {
+            Try {
+                $time = Get-Date -Format "HH-mm-ss"
+                mkdir C:\Users\$env:USERNAME\logs\$date\$time
+                $LOGSPATH = "C:\Users\$env:USERNAME\logs\$date\$time"
+                return 1
+            } Catch {
+                Write-Host "Unable to create log folder!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return 0
+        }
         Try {
             mkdir C:\Users\$env:USERNAME\logs\$date
-            return 1
+            create_folders
         } Catch {
             Write-Host "Unable to create log folder!" -ForegroundColor Red
             Start-Sleep 1.5
