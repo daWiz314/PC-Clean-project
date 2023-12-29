@@ -119,8 +119,16 @@ function CreateAdminAccount {
 function DisableAdminAccount {
     Clear-Host
     Write-Host "Disabling admin account..."
-    
-    net user administrator /active:no
+    Try {
+        net user administrator /active:no
+    } Catch {
+        Write-Host "Unable to disable admin account!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
+    }
+    Write-Host "Admin account disabled!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
 }
 
 function DisableBitLocker {
