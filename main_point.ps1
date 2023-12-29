@@ -1,6 +1,6 @@
 
 
-$VERSION = "1.0.5"
+$VERSION = "1.0.6"
 
 function confirm {
     param (
@@ -44,6 +44,40 @@ function StandardCleanup {
         StandardCleanupNoLogs
     } else {
         StandardCleanupLogs
+    }
+}
+
+function sfc_log {
+    $container = sfc.exe /scannow
+    #Splits them into groups
+    $container = $container -split " "
+    $newContainer = [System.Collections.ArrayList]::new()
+    foreach ($group in $container) {
+        # If it actually contains letters, numbers, or symbols, then we want to split it up
+        if ($group -match '[\s+a-z+0-9+.+%+/-]') {
+            $group = $group -split ""
+            foreach ($letter in $group) {
+                # For every letter that is NOT a space, add it to the array
+                if ($letter -match '[\a-z+0-9+.+%+/-]') {
+                    $newContainer.Insert($newContainer.Count, $letter)
+                    continue
+                }           
+            }
+            #Add a space after each letter
+            $newContainer.Insert($newContainer.Count, " ")
+        } else {
+            continue
+        }
+    } 
+
+    #Output it to a file
+
+    for ($i=0; $i -lt $newContainer.Count; $i++) {
+        if ($newContainer[$i] -eq ".") {
+            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append
+        } else {
+            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
+        }
     }
 }
 
