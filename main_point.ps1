@@ -111,9 +111,17 @@ function StandardCleanupLogs {
 function CreateAdminAccount {
     Clear-Host
     Write-Host "Creating admin account..."
-    net user administrator /active:yes
+    Try {
+        net user administrator /active:yes
+    } Catch {
+        Write-Host "Unable to create admin account!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
+    }
     Write-Host "Switching to admin account..."
     Start-Process powershell -Verb runAs
+    Start-Sleep 1.5
+    return
 }
 
 function DisableAdminAccount {
