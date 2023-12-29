@@ -1,4 +1,7 @@
-$VERSION = "1.0.0"
+
+
+$VERSION = "1.0.6"
+
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -17,11 +20,64 @@ function confirm {
         confirm
     }
 }
+
+# Count down function to streamline the code
+
+function countdown {
+    param (
+        [Parameter(Mandatory=$true)][int]$seconds,
+        [Parameter(Mandatory=$true)][string]$message
+    )
+    Clear-Host
+    Write-Host $message " IN " $seconds " SECONDS" -ForegroundColor Red
+    Start-Sleep 1
+    for ($i=$seconds-1; $i -gt 0; $i--) {
+        Clear-Host
+        Write-Host $message " IN " $i " SECONDS" -ForegroundColor Red
+        Start-Sleep 1
+        return # To actually do the thing in blank seconds
+    }
+}
+
 function StandardCleanup {
     if ($script:logs -eq 0) {
         StandardCleanupNoLogs
     } else {
         StandardCleanupLogs
+    }
+}
+
+function sfc_log {
+    $container = sfc.exe /scannow
+    #Splits them into groups
+    $container = $container -split " "
+    $newContainer = [System.Collections.ArrayList]::new()
+    foreach ($group in $container) {
+        # If it actually contains letters, numbers, or symbols, then we want to split it up
+        if ($group -match '[\s+a-z+0-9+.+%+/-]') {
+            $group = $group -split ""
+            foreach ($letter in $group) {
+                # For every letter that is NOT a space, add it to the array
+                if ($letter -match '[\a-z+0-9+.+%+/-]') {
+                    $newContainer.Insert($newContainer.Count, $letter)
+                    continue
+                }           
+            }
+            #Add a space after each letter
+            $newContainer.Insert($newContainer.Count, " ")
+        } else {
+            continue
+        }
+    } 
+
+    #Output it to a file
+
+    for ($i=0; $i -lt $newContainer.Count; $i++) {
+        if ($newContainer[$i] -eq ".") {
+            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append
+        } else {
+            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
+        }
     }
 }
 
@@ -31,13 +87,7 @@ function StandardCleanupNoLogs {
     Dism.exe /online /cleanup-image /restorehealth
     sfc.exe /scannow
     Write-Host y | chkdsk /f /r /x /b
-    Write-Host "SHUTTING DOWN IN 10 SECONDS" -ForegroundColor Red
-    Start-Sleep 1
-    for ($i=9; $i -gt 0; $i--) {
-        Clear-Host
-        Write-Host "SHUTTING DOWN IN $i SECONDS" -ForegroundColor Red
-        Start-Sleep 1
-    }
+    countdown(10, "SHUTTING DOWN")
     shutdown /r /t 0
 }
 
@@ -53,13 +103,7 @@ function StandardCleanupLogs {
     sfc.exe /scannow >> C:\Users\$env:USERNAME\log\SFC.log
     Write-Host y | chkdsk /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
-    Write-Host "SHUTTING DOWN IN 10 SECONDS" -ForegroundColor Red
-    Start-Sleep 1
-    for ($i=9; $i -gt 0; $i--) {
-        Clear-Host
-        Write-Host "SHUTTING DOWN IN $i SECONDS" -ForegroundColor Red
-        Start-Sleep 1
-    }
+    countdown(10, "SHUTTING DOWN")
     shutdown /r /t 0
     getkeyPress
 }
@@ -95,18 +139,18 @@ function BootOptions {
     switch ($option) {
         1 {
             Clear-Host
-            Write-Host "Booting into UEFI settings..."
-            shutdown /r /f /fw /t 3
+            countdown(3, "Booting into UEFI Settings")
+            shutdown /r /f /fw /t 00
         }
         2 {
             Clear-Host
-            Write-Host "Booting into advanced startup..."
-            shutdown /r /f /o /t 3
+            countdown(3, "Booting into Advanced Startup")
+            shutdown /r /f /o /t 00
         }
         3 {
             Clear-Host
-            Write-Host "Rebooting..."
-            shutdown /r /f /t 3
+            countdown(3, "Rebooting")
+            shutdown /r /f /t 00
         }
         4 {
             main_menu
@@ -133,7 +177,7 @@ function ShowOptions {
         1 {
             if ($script:logs -eq 0) {
                 $script:logs = 1
-                mkdir C:\Users\$env:USERNAME\log
+               
             } else {
                 $script:logs = 0
             }
@@ -144,10 +188,14 @@ function ShowOptions {
     }
 }
 
+function create_folders {
+    mkdir C:\Users\$env:USERNAME\log
+}
+
 function getListOfUsers {
     [System.Collections.ArrayList]$users = net user | Select-String -Pattern "^[A-Za-z0-9]" | Select-Object -ExpandProperty Line | ForEach-Object { $_.Trim() }
     #remove the spaces from in-between the users
-    #For some reason the list will contain the users like USER1             USER2, so we want to get rid of all that extra space
+    #For some reason the list will contain the users like USER1     (bunch of spaces here in case you can't tell)        USER2, so we want to get rid of all that extra space
     $users = $users -split '  '
     $users = $users | Where-Object { $_ -ne "" }
     $users.RemoveAt(0)
@@ -169,7 +217,7 @@ function selectUser {
         return
     }
     Write-Host "You chose: " $users[$choice]
-    Start-Sleep 1.5
+    Start-Sleep 1
     Clear-Host
     return $users[$choice]
 }
@@ -257,6 +305,7 @@ function userControl {
         3 {
             Clear-Host
             Write-Host "Still working on this..."
+            Start-Sleep 1.5
             userControl
         }
         4 {
@@ -286,11 +335,12 @@ function MainMenu {
         }
         Write-Host "Welcome to the Quick Fix Script!" -ForegroundColor Blue
         Write-Host "Main Menu "$VERSION -ForegroundColor Green
-        Write-Host "1) DISM, SFC, CHKDSK, and reboot"
-        Write-Host "2) Create Admin account, and switch to it"
-        Write-Host "3) Disable Admin account"
-        Write-Host "4) Disable BitLocker"
-        Write-Host "5) Boot Options"
+        Write-Host "DEV VERSION" -ForegroundColor Red
+        #Write-Host "1) DISM, SFC, CHKDSK, and reboot"
+        #Write-Host "2) Create Admin account, and switch to it"
+        #Write-Host "3) Disable Admin account"
+        #Write-Host "4) Disable BitLocker"
+        #Write-Host "5) Boot Options"
         Write-Host "6) Options"
         Write-Host "7) User Control"
         Write-Host "q) Exit"
@@ -326,5 +376,8 @@ function MainMenu {
     }
 }
 
-$script:logs = 0
+$ui.WindowTitle = "Quick Fix Script"
+
+$script:logs = 1
+create_folders
 MainMenu
