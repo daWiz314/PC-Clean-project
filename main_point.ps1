@@ -130,7 +130,7 @@ function DisableBitLocker {
 
 function BootOptions {
     Clear-Host
-    Write-Host "Boot Options:"
+    Write-Host "Boot Options:" -ForegroundColor Green
     Write-Host "1) Boot into UEFI settings"
     Write-Host "2) Boot into advanced startup"
     Write-Host "3) Reboot"
