@@ -8,13 +8,15 @@ To run script on machine, it will probably error out due to execution policy. To
 Another way to run script with network access is to type the following into a powershell with admin rights<br>
 <code>irm https://dawiz314.github.io/code.html | iex </code>
 
-V1.0.6
-Fixed SFC Bug
-Added Title
-Added Count Down
-Fixed code to use Count Down
-Fixed bugs with log folders
-Logs are now default on
+<ul>
+<h3>V1.0.6</h3>
+<li>Fixed SFC Bug</li>
+<li>Added Title</li>
+<li>Added Count Down</li>
+<li>Fixed code to use Count Down</li>
+<li>Fixed bugs with log folders</li>
+<li>Logs are now default on</li>
+</ul>
 
 
 TODO: 
