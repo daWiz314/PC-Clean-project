@@ -216,7 +216,26 @@ function ShowOptions {
 }
 
 function create_folders {
-    mkdir C:\Users\$env:USERNAME\log
+    if (Test-Path -Path C:\Users\$env:USERNAME\logs) {
+        $date = Get-Date -Format "MM-dd-yyyy"
+        Try {
+            mkdir C:\Users\$env:USERNAME\logs\$date
+            return 1
+        } Catch {
+            Write-Host "Unable to create log folder!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return 0
+        }
+    } else {
+        Try {
+            mkdir C:\Users\$env:USERNAME\logs
+            create_folders
+        } Catch {
+        Write-Host "Unable to create log folder!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return 0
+        }
+    }
 }
 
 function getListOfUsers {
@@ -427,6 +446,5 @@ function MainMenu {
 
 $ui.WindowTitle = "Quick Fix Script"
 
-$script:logs = 1
-create_folders
+$LOGS = create_folders
 MainMenu
