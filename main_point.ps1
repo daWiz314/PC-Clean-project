@@ -119,13 +119,24 @@ function CreateAdminAccount {
 function DisableAdminAccount {
     Clear-Host
     Write-Host "Disabling admin account..."
+    
     net user administrator /active:no
 }
 
 function DisableBitLocker {
     Clear-Host
     Write-Host "Disabling BitLocker..."
-    manage-bde -off C:
+    Try {
+        manage-bde -off C:
+    } Catch {
+        Write-Host "Unable to disable BitLocker!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
+    }
+    Write-Host "BitLocker disabled!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
+    
 }
 
 function BootOptions {
