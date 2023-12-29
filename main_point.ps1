@@ -336,11 +336,11 @@ function MainMenu {
         Write-Host "Welcome to the Quick Fix Script!" -ForegroundColor Blue
         Write-Host "Main Menu "$VERSION -ForegroundColor Green
         Write-Host "DEV VERSION" -ForegroundColor Red
-        #Write-Host "1) DISM, SFC, CHKDSK, and reboot"
-        #Write-Host "2) Create Admin account, and switch to it"
-        #Write-Host "3) Disable Admin account"
-        #Write-Host "4) Disable BitLocker"
-        #Write-Host "5) Boot Options"
+        Write-Host "1) DISM, SFC, CHKDSK, and reboot"
+        Write-Host "2) Create Admin account, and switch to it"
+        Write-Host "3) Disable Admin account"
+        Write-Host "4) Disable BitLocker"
+        Write-Host "5) Boot Options"
         Write-Host "6) Options"
         Write-Host "7) User Control"
         Write-Host "q) Exit"
