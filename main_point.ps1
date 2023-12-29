@@ -74,9 +74,9 @@ function sfc_log {
 
     for ($i=0; $i -lt $newContainer.Count; $i++) {
         if ($newContainer[$i] -eq ".") {
-            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append
+            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append
         } else {
-            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
+            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
         }
     }
 }
@@ -94,13 +94,13 @@ function StandardCleanupNoLogs {
 function StandardCleanupLogs {
     Clear-Host
     Write-Host "Starting standard cleanup with logs in user account folder"
-    Write-Host "Logs will be located in C:\Users\$env:USERNAME\log"
+    Write-Host "Logs will be located in C:\Users\$env:USERNAME\logs"
     Write-Host "Running DISM" -ForegroundColor Green
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Dism.exe /online /cleanup-image /restorehealth >> C:\Users\$env:USERNAME\log\DISM.log
+    Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.log
     Write-Host "Running SFC" -ForegroundColor Green
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    sfc.exe /scannow >> C:\Users\$env:USERNAME\log\SFC.log
+    sfc_log
     Write-Host y | chkdsk /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
     countdown(10, "SHUTTING DOWN")
@@ -187,13 +187,13 @@ function BootOptions {
 
 function ShowOptions {
     Clear-Host
-    if ($script:logs -eq 0) {
+    if ($logs -eq 0) {
         Write-Host "Logs turned off!" -ForegroundColor Red
     } else {
         Write-Host "Logs turned on!"  -ForegroundColor Green
     }
     Write-Host "Options" -ForegroundColor Green
-    if ($script:logs -eq 0) {
+    if ($logs -eq 0) {
         Write-Host "1) Turn on logs"
     } else {
         Write-Host "1) Turn off logs"
@@ -202,11 +202,11 @@ function ShowOptions {
     $option = getKeyPress
     switch ($option) {
         1 {
-            if ($script:logs -eq 0) {
-                $script:logs = 1
+            if ($logs -eq 0) {
+                $logs = 1
                
             } else {
-                $script:logs = 0
+                $logs = 0
             }
         }
         2 {
