@@ -2,6 +2,7 @@
 
 $VERSION = "1.0.7"
 $LOGSPATH = ""
+
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -229,6 +230,7 @@ function create_folders {
                 Start-Sleep 1.5
                 return 0
         }
+    }
             Try {
                 mkdir C:\Users\$env:USERNAME\logs\$date
                 create_folders
@@ -246,6 +248,52 @@ function create_folders {
             Start-Sleep 1.5
             return 0
             }
+        }
+}
+
+function recoverDeletedUsersFolders {
+    [Parameter(Mandatory=$true)][string]$user
+    Start-Sleep 2
+    $choice = confirm("Copy deleted user: " +$user+ " folders?")
+    if ($choice -eq 1) {
+        Clear-Host
+        Write-Host "Copying deleted user: "$user  " folders"
+        $path = "C:\Users\$user"
+        $dest = "C:\Users\$env:USERNAME\$user"
+        Try {
+            $i = 0
+            while ($true) {
+                $i++
+                if (Test-Path -Path $dest) {
+                    $dest = "C:\Users\$env:USERNAME\$user$i"
+                    continue
+                } else {
+                    break
+                    Write-Host "In Loop"
+                    
+                }
+            }
+            mkdir "C:\Users\$env:USERNAME\$user$i"
+        } catch {
+            Write-Host "Unable to create folder to move data to!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return
+        }
+        
+        $dest = "C:\Users\$env:USERNAME\$user"
+        Try {
+            robocopy $path $dest /MIR /R:1 /W:1 /copy:t /dcopy:T /MT:128 /log:$LOGSPATH\$user.txt /tee /j
+            Try {
+                Remove-Item -r -force $path
+            } catch {
+                Write-Host "Unable to delete " $user " folder!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return
+            }
+        } Catch {
+            Write-Host "Unable to copy users folders!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return
         }
     }
 }
@@ -316,6 +364,7 @@ function deleteUser {
             }
             Write-Host "User deleted!" -ForegroundColor Green
             Start-Sleep 1.5
+            recoverDeletedUsersFolders($user)
         } else {
             return
         }
@@ -374,7 +423,6 @@ function createNewUser {
 }
 
 function userControl {
-    Clear-Host
     Write-Host "User Control" -ForegroundColor Green
     Write-Host "Choose an option:"
     Write-Host "1) Reset password"
@@ -409,7 +457,7 @@ function getKeyPress {
 function MainMenu {
     while ($true) {
         Clear-Host
-        if ($script:logs -eq 0) {
+        if ($logs -eq 0) {
             Write-Host "Logs turned off!" -ForegroundColor darkRed
         } else {
             Write-Host "Logs turned on!" -ForegroundColor darkGreen
@@ -456,7 +504,9 @@ function MainMenu {
     }
 }
 
-$ui.WindowTitle = "Quick Fix Script"
+
+# Causes issues.
+#$ui.WindowTitle = "Quick Fix Script"
 
 $LOGS = create_folders
 MainMenu
