@@ -448,6 +448,68 @@ function userControl {
     userControl
 }
 
+
+# Resets the windows update folders related to it.
+function resetWindowsUpdate {
+    Clear-Host
+    Write-Host "Resetting Windows Update" -ForegroundColor Green
+    Write-Host "Please wait..." -ForegroundColor Red
+    # Stopping update services
+    Stop-Service -Name BITS -Force
+    Stop-Service -Name wuauserv -Force
+    Stop-Service -Name cryptsvc -Force
+
+    # Removing folders with update data
+    Remove-Item -Path "$env:systemroot\SoftwareDistribution" -ErrorAction SilentlyContinue -Recurse
+    Remove-Item -Path "$env:systemroot\System32\Catroot2" -ErrorAction SilentlyContinue -Recurse
+
+    # Reset Win Sock
+    netsh winsock reset
+
+    # Restarting 
+    Start-Service -Name BITS 
+    Start-Service -Name wuauserv 
+    Start-Service -Name cryptsvc
+
+    # Finished, explain to user
+    Clear-Host
+    Write-Host "Windows Update reset!" -ForegroundColor Green
+    Start-Sleep 1.5
+}
+
+# Settings for new setups or for existing set ups
+# To be added onto in the future
+# 1) Will reset the windows update that sometimes bugs out with updates. It will reset the folders related and reset the service involved
+# 2) Removes all the default packages, usually noted as bloatware, downside is it removes camera, calculator, photos, and other general use items as well
+# 3) Reinstalls the basic packages that are removed from option 2, but will present it as a list
+
+function newSetUpSettings {
+    Clear-Host
+    Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
+    Write-Host "Choose an option:"
+    Write-Host "1) Reset Windows Update"
+    Write-Host "2) Remove all default preinstalled packages"
+    Write-Host "3) Reinstall basic packages (Camera, Calculator, etc.)"
+    Write-Host "q) Back to main menu"
+    $option = getKeyPress
+    switch ($option) {
+        1 {
+            resetWindowsUpdate
+        }
+        2 {
+            removeDefaultPackages
+        }
+        3 {
+            reinstallBasicPackages
+        }
+        "q" {
+            mainMenu
+        }
+    }
+}
+
+
+
 function getKeyPress {
     $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     $key = $pressedKey.Character
@@ -471,6 +533,7 @@ function MainMenu {
         Write-Host "5) Boot Options"
         Write-Host "6) Options"
         Write-Host "7) User Control"
+        Write-Host "8) New Setup Settings / OS Settings"
         Write-Host "q) Exit"
         $choice = getKeyPress
 
@@ -495,6 +558,9 @@ function MainMenu {
             }
             7 {
                 userControl
+            }
+            8 {
+                newSetUpSettings
             }
             'q'{
                 Clear-Host
