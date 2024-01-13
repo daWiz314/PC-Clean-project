@@ -229,7 +229,7 @@ function create_folders {
         $date = Get-Date -Format "MM-dd-yyyy"
         if (Test-Path -Path C:\Users\$env:USERNAME\logs\$date) {
             Try {
-                $time = Get-Date -Format "HH-mm-ss"
+                $time = Get-Date -Format "HH_mm_ss"
                 mkdir C:\Users\$env:USERNAME\logs\$date\$time
                 $LOGSPATH = "C:\Users\$env:USERNAME\logs\$date\$time"
                 return 1
