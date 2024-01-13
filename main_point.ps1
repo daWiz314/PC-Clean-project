@@ -86,7 +86,7 @@ function StandardCleanupNoLogs {
     Write-Host "Starting standard cleanup with no logs..."
     Dism.exe /online /cleanup-image /restorehealth
     sfc.exe /scannow
-    Write-Host y | chkdsk /f /r /x /b
+    echo y | chkdsk C: /f /r /x /b
     countdown(10, "SHUTTING DOWN")
     shutdown /r /t 0
 }
@@ -101,7 +101,7 @@ function StandardCleanupLogs {
     Write-Host "Running SFC" -ForegroundColor Green
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
     sfc.exe /scannow >> C:\Users\$env:USERNAME\log\SFC.log
-    Write-Host y | chkdsk /f /r /x /b 
+    echo y | chkdsk C: /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
     countdown(10, "SHUTTING DOWN")
     shutdown /r /t 0
