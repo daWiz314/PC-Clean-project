@@ -1,6 +1,6 @@
 <h1>Welcome!</h1>
 <br>
-<h2>THIS IS THE DEV BRANCH</h2>
+
 This is just a script to allow for quick editing or quick fixes for windows!
 
 To run script on machine, it will probably error out due to execution policy. To allow it to run without editing execution policy type<br> <code>powershell -noexit -executionpolicy bypass -File \filenamehere\ </code>
