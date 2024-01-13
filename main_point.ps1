@@ -480,6 +480,10 @@ function resetWindowsUpdate {
 
 function removeDefaultPackages {
     Clear-Host
+		Clear-Host
+		Write-Host "Still under construction" -ForegroundColor Red
+		Start-Sleep 1.5
+		return
     Write-Host "Deleting default packages" -ForegroundColor Green
     Write-Host "Please wait..." -ForegroundColor Red
 
@@ -513,6 +517,10 @@ class FindPackage {
 
 
 function reinstallBasicPackages {
+		Clear-Host
+		Write-Host "Still under construction" -ForegroundColor Red
+		Start-Sleep 1.5
+		return
     Clear-Host
     Write-Host "Please select which packages to install:" -ForegroundColor Green
     $selector = 0
