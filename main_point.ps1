@@ -475,7 +475,52 @@ function resetWindowsUpdate {
     Clear-Host
     Write-Host "Windows Update reset!" -ForegroundColor Green
     Start-Sleep 1.5
+    return
 }
+
+function removeDefaultPackages {
+    Clear-Host
+    Write-Host "Deleting default packages" -ForegroundColor Green
+    Write-Host "Please wait..." -ForegroundColor Red
+
+    # Removing default packages
+    Get-AppxPackage -AllUsers | Remove-AppxPackage
+
+    # Finished, explain to user
+    Clear-Host
+    Write-Host "Default packages removed!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
+}
+
+class FindPackage {
+    [string]$name
+    [string]$id
+    [bool]$checked
+    Package([string]$name, [string]$id, [bool]$checked) {
+        $this.name = $name
+        $this.id = $id
+        $this.checked = $checked
+    }
+    [void] toggle() {
+        if ($this.checked) {
+            $this.checked = $false
+        } else {
+            $this.checked = $true
+        }
+    }
+}
+
+
+function reinstallBasicPackages {
+    Clear-Host
+    Write-Host "Please select which packages to install:" -ForegroundColor Green
+    $selector = 0
+
+    $packages = @(FindPackage("Windows Camera"), FindPackage("Photos"))
+}
+
+
 
 # Settings for new setups or for existing set ups
 # To be added onto in the future
