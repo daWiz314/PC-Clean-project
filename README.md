@@ -9,6 +9,16 @@ Another way to run script with network access is to type the following into a po
 <code>irm https://dawiz314.github.io/code.html | iex </code>
 
 <ul>
+  <h3>1.0.10</h3>
+  <li>Fixed chkdsk bug</li>
+  <li>Testing copying folders/files from deleting a user</li>
+  <li>Updated logs to be more organized</li>
+  <li>Fixed path bug with logs</li>
+  <li>Added error catching to most functions</li>
+  <li>Added color to different pages</li>
+</ul>
+
+<ul>
 <h3>V1.0.7</h3>
 <li>Fixed SFC Bug</li>
 <li>Added Title</li>
