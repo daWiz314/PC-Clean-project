@@ -1,6 +1,7 @@
 
 
-$VERSION = "1.0.7"
+$VERSION = "1.0.10"
+$LOGSPATH = ""
 
 function confirm {
     param (
@@ -74,9 +75,9 @@ function sfc_log {
 
     for ($i=0; $i -lt $newContainer.Count; $i++) {
         if ($newContainer[$i] -eq ".") {
-            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append
+            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append
         } else {
-            Out-File C:\Users\$env:USERNAME\log\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
+            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
         }
     }
 }
@@ -94,13 +95,13 @@ function StandardCleanupNoLogs {
 function StandardCleanupLogs {
     Clear-Host
     Write-Host "Starting standard cleanup with logs in user account folder"
-    Write-Host "Logs will be located in C:\Users\$env:USERNAME\log"
+    Write-Host "Logs will be located in C:\Users\$env:USERNAME\logs"
     Write-Host "Running DISM" -ForegroundColor Green
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Dism.exe /online /cleanup-image /restorehealth >> C:\Users\$env:USERNAME\log\DISM.log
+    Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.log
     Write-Host "Running SFC" -ForegroundColor Green
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    sfc.exe /scannow >> C:\Users\$env:USERNAME\log\SFC.log
+    sfc_log
     echo y | chkdsk C: /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
     countdown(10, "SHUTTING DOWN")
@@ -111,26 +112,53 @@ function StandardCleanupLogs {
 function CreateAdminAccount {
     Clear-Host
     Write-Host "Creating admin account..."
-    net user administrator /active:yes
+    Try {
+        net user administrator /active:yes
+    } Catch {
+        Write-Host "Unable to create admin account!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
+    }
     Write-Host "Switching to admin account..."
     Start-Process powershell -Verb runAs
+    Start-Sleep 1.5
+    return
 }
 
 function DisableAdminAccount {
     Clear-Host
     Write-Host "Disabling admin account..."
-    net user administrator /active:no
+    Try {
+        net user administrator /active:no
+    } Catch {
+        Write-Host "Unable to disable admin account!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
+    }
+    Write-Host "Admin account disabled!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
 }
 
 function DisableBitLocker {
     Clear-Host
     Write-Host "Disabling BitLocker..."
-    manage-bde -off C:
+    Try {
+        manage-bde -off C:
+    } Catch {
+        Write-Host "Unable to disable BitLocker!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
+    }
+    Write-Host "BitLocker disabled!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
+    
 }
 
 function BootOptions {
     Clear-Host
-    Write-Host "Boot Options:"
+    Write-Host "Boot Options:" -ForegroundColor Green
     Write-Host "1) Boot into UEFI settings"
     Write-Host "2) Boot into advanced startup"
     Write-Host "3) Reboot"
@@ -160,13 +188,13 @@ function BootOptions {
 
 function ShowOptions {
     Clear-Host
-    if ($script:logs -eq 0) {
+    if ($logs -eq 0) {
         Write-Host "Logs turned off!" -ForegroundColor Red
     } else {
         Write-Host "Logs turned on!"  -ForegroundColor Green
     }
-    Write-Host "Options:"
-    if ($script:logs -eq 0) {
+    Write-Host "Options" -ForegroundColor Green
+    if ($logs -eq 0) {
         Write-Host "1) Turn on logs"
     } else {
         Write-Host "1) Turn off logs"
@@ -175,11 +203,11 @@ function ShowOptions {
     $option = getKeyPress
     switch ($option) {
         1 {
-            if ($script:logs -eq 0) {
-                $script:logs = 1
+            if ($logs -eq 0) {
+                $logs = 1
                
             } else {
-                $script:logs = 0
+                $logs = 0
             }
         }
         2 {
@@ -189,7 +217,85 @@ function ShowOptions {
 }
 
 function create_folders {
-    mkdir C:\Users\$env:USERNAME\log
+    if (Test-Path -Path C:\Users\$env:USERNAME\logs) {
+        $date = Get-Date -Format "MM-dd-yyyy"
+        if (Test-Path -Path C:\Users\$env:USERNAME\logs\$date) {
+            Try {
+                $time = Get-Date -Format "HH-mm-ss"
+                mkdir C:\Users\$env:USERNAME\logs\$date\$time
+                $LOGSPATH = "C:\Users\$env:USERNAME\logs\$date\$time"
+                return 1
+            } Catch {
+                Write-Host "Unable to create log folder!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return 0
+        }
+    }
+            Try {
+                mkdir C:\Users\$env:USERNAME\logs\$date
+                create_folders
+            } Catch {
+                Write-Host "Unable to create log folder!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return 0
+            }
+        } else {
+            Try {
+                mkdir C:\Users\$env:USERNAME\logs
+                create_folders
+            } Catch {
+            Write-Host "Unable to create log folder!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return 0
+            }
+        }
+}
+
+function recoverDeletedUsersFolders {
+    [Parameter(Mandatory=$true)][string]$user
+    Start-Sleep 2
+    $choice = confirm("Copy deleted user: " +$user+ " folders?")
+    if ($choice -eq 1) {
+        Clear-Host
+        Write-Host "Copying deleted user: "$user  " folders"
+        $path = "C:\Users\$user"
+        $dest = "C:\Users\$env:USERNAME\$user"
+        Try {
+            $i = 0
+            while ($true) {
+                $i++
+                if (Test-Path -Path $dest) {
+                    $dest = "C:\Users\$env:USERNAME\$user$i"
+                    continue
+                } else {
+                    break
+                    Write-Host "In Loop"
+                    
+                }
+            }
+            mkdir "C:\Users\$env:USERNAME\$user$i"
+        } catch {
+            Write-Host "Unable to create folder to move data to!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return
+        }
+        
+        $dest = "C:\Users\$env:USERNAME\$user"
+        Try {
+            robocopy $path $dest /MIR /R:1 /W:1 /copy:t /dcopy:T /MT:128 /log:$LOGSPATH\$user.txt /tee /j
+            Try {
+                Remove-Item -r -force $path
+            } catch {
+                Write-Host "Unable to delete " $user " folder!" -ForegroundColor Red
+                Start-Sleep 1.5
+                return
+            }
+        } Catch {
+            Write-Host "Unable to copy users folders!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return
+        }
+    }
 }
 
 function getListOfUsers {
@@ -227,7 +333,16 @@ function resetPassword {
     $user = selectUser
     $result = confirm("Resetting password for user: "+$user)
     if ($result -eq 1) {
-        net user $user *
+        Try {
+            net user $user *
+        } Catch {
+            Write-Host "Unable to reset password!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return
+        }
+        Write-Host "Password reset!" -ForegroundColor Green
+        Start-Sleep 1.5
+        return
     } else {
         return
     }
@@ -249,6 +364,7 @@ function deleteUser {
             }
             Write-Host "User deleted!" -ForegroundColor Green
             Start-Sleep 1.5
+            recoverDeletedUsersFolders($user)
         } else {
             return
         }
@@ -278,22 +394,35 @@ function createNewUser {
         $group = 'Users'
     }
     Write-Host "Creating user $username..."
-    if ($password) {
-        New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires -NoPassword
-    } else {
-        New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires $password
+    Try {
+        if ($password) {
+            New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires -NoPassword
+        } else {
+            New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires $password
+        }
+    } Catch {
+        Write-Host "Unable to create user!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
     }
 
-    if ($group -eq 'Administrators') {
-        Add-LocalGroupMember -Group "Administrators" -Member $username
+    Try {
+        if ($group -eq 'Administrators') {
+            Add-LocalGroupMember -Group "Administrators" -Member $username
+        }
+    } catch {
+        Write-Host "Unable to add user to Administrators group!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
     }
+
+    Write-Host "User created!" -ForegroundColor Green
     Start-Sleep 1.5
     return
 
 }
 
 function userControl {
-    Clear-Host
     Write-Host "User Control" -ForegroundColor Green
     Write-Host "Choose an option:"
     Write-Host "1) Reset password"
@@ -319,6 +448,115 @@ function userControl {
     userControl
 }
 
+
+# Resets the windows update folders related to it.
+function resetWindowsUpdate {
+    Clear-Host
+    Write-Host "Resetting Windows Update" -ForegroundColor Green
+    Write-Host "Please wait..." -ForegroundColor Red
+    # Stopping update services
+    Stop-Service -Name BITS -Force
+    Stop-Service -Name wuauserv -Force
+    Stop-Service -Name cryptsvc -Force
+
+    # Removing folders with update data
+    Remove-Item -Path "$env:systemroot\SoftwareDistribution" -ErrorAction SilentlyContinue -Recurse
+    Remove-Item -Path "$env:systemroot\System32\Catroot2" -ErrorAction SilentlyContinue -Recurse
+
+    # Reset Win Sock
+    netsh winsock reset
+
+    # Restarting 
+    Start-Service -Name BITS 
+    Start-Service -Name wuauserv 
+    Start-Service -Name cryptsvc
+
+    # Finished, explain to user
+    Clear-Host
+    Write-Host "Windows Update reset!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
+}
+
+function removeDefaultPackages {
+    Clear-Host
+    Write-Host "Deleting default packages" -ForegroundColor Green
+    Write-Host "Please wait..." -ForegroundColor Red
+
+    # Removing default packages
+    Get-AppxPackage -AllUsers | Remove-AppxPackage
+
+    # Finished, explain to user
+    Clear-Host
+    Write-Host "Default packages removed!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
+}
+
+class FindPackage {
+    [string]$name
+    [string]$id
+    [bool]$checked
+    Package([string]$name, [string]$id, [bool]$checked) {
+        $this.name = $name
+        $this.id = $id
+        $this.checked = $checked
+    }
+    [void] toggle() {
+        if ($this.checked) {
+            $this.checked = $false
+        } else {
+            $this.checked = $true
+        }
+    }
+}
+
+
+function reinstallBasicPackages {
+    Clear-Host
+    Write-Host "Please select which packages to install:" -ForegroundColor Green
+    $selector = 0
+
+    $packages = @(FindPackage("Windows Camera"), FindPackage("Photos"))
+}
+
+
+
+# Settings for new setups or for existing set ups
+# To be added onto in the future
+# 1) Will reset the windows update that sometimes bugs out with updates. It will reset the folders related and reset the service involved
+# 2) Removes all the default packages, usually noted as bloatware, downside is it removes camera, calculator, photos, and other general use items as well
+# 3) Reinstalls the basic packages that are removed from option 2, but will present it as a list
+
+function newSetUpSettings {
+    Clear-Host
+    Write-Host "This is still being worked on, come back later!"
+    Start-Sleep 1.5
+    Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
+    Write-Host "Choose an option:"
+    Write-Host "1) Reset Windows Update"
+    Write-Host "2) Remove all default preinstalled packages"
+    Write-Host "3) Reinstall basic packages (Camera, Calculator, etc.)"
+    Write-Host "q) Back to main menu"
+    $option = getKeyPress
+    switch ($option) {
+        1 {
+            resetWindowsUpdate
+        }
+        2 {
+            removeDefaultPackages
+        }
+        3 {
+            reinstallBasicPackages
+        }
+        "q" {
+            mainMenu
+        }
+    }
+}
+
+
+
 function getKeyPress {
     $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     $key = $pressedKey.Character
@@ -328,7 +566,7 @@ function getKeyPress {
 function MainMenu {
     while ($true) {
         Clear-Host
-        if ($script:logs -eq 0) {
+        if ($logs -eq 0) {
             Write-Host "Logs turned off!" -ForegroundColor darkRed
         } else {
             Write-Host "Logs turned on!" -ForegroundColor darkGreen
@@ -342,6 +580,7 @@ function MainMenu {
         Write-Host "5) Boot Options"
         Write-Host "6) Options"
         Write-Host "7) User Control"
+        Write-Host "8) New Setup Settings / OS Settings"
         Write-Host "q) Exit"
         $choice = getKeyPress
 
@@ -367,6 +606,9 @@ function MainMenu {
             7 {
                 userControl
             }
+            8 {
+                newSetUpSettings
+            }
             'q'{
                 Clear-Host
                 exit
@@ -375,8 +617,9 @@ function MainMenu {
     }
 }
 
-$ui.WindowTitle = "Quick Fix Script"
 
-$script:logs = 1
-create_folders
+# Causes issues.
+#$ui.WindowTitle = "Quick Fix Script"
+
+$LOGS = create_folders
 MainMenu
