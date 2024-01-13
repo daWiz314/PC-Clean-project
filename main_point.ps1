@@ -102,8 +102,8 @@ function StandardCleanupLogs {
     $time = Get-Date -Format "HH:mm:ss"
     Write-Host "Current Time: "
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Out-File $LOGSPATH -InputObject "Time Started $time" -Append
-    Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.log
+    Out-File $LOGSPATH\DISM.txt -InputObject "Time Started $time" -Append
+    Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.txt
     Write-Host "Running SFC" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
     Write-Host "Current Time: "
@@ -229,7 +229,7 @@ function create_folders {
         $date = Get-Date -Format "MM-dd-yyyy"
         if (Test-Path -Path C:\Users\$env:USERNAME\logs\$date) {
             Try {
-                $time = Get-Date -Format "HH:mm:ss"
+                $time = Get-Date -Format "HH_mm_ss"
                 mkdir C:\Users\$env:USERNAME\logs\$date\$time
                 $LOGSPATH = "C:\Users\$env:USERNAME\logs\$date\$time"
                 return 1
