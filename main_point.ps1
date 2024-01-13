@@ -71,7 +71,9 @@ function sfc_log {
         }
     } 
 
+    $time = Get-Date -Format "HH:mm:ss"
     #Output it to a file
+    Out-File $LOGSPATH\sfc.txt -InputObject "Starting SFC at: $time" -Append
 
     for ($i=0; $i -lt $newContainer.Count; $i++) {
         if ($newContainer[$i] -eq ".") {
@@ -97,9 +99,14 @@ function StandardCleanupLogs {
     Write-Host "Starting standard cleanup with logs in user account folder"
     Write-Host "Logs will be located in C:\Users\$env:USERNAME\logs"
     Write-Host "Running DISM" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: "
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+    Out-File $LOGSPATH -InputObject "Time Started $time" -Append
     Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.log
     Write-Host "Running SFC" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: "
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
     sfc_log
     echo y | chkdsk C: /f /r /x /b 
@@ -162,7 +169,7 @@ function BootOptions {
     Write-Host "1) Boot into UEFI settings"
     Write-Host "2) Boot into advanced startup"
     Write-Host "3) Reboot"
-    Write-Host "4) Back to main menu"
+    Write-Host "q) Back to main menu"
     $option = getKeyPress
     switch ($option) {
         1 {
@@ -180,7 +187,7 @@ function BootOptions {
             countdown(3, "Rebooting")
             shutdown /r /f /t 00
         }
-        4 {
+        "q" {
             main_menu
         }
     }
@@ -204,7 +211,8 @@ function ShowOptions {
     switch ($option) {
         1 {
             if ($logs -eq 0) {
-                $logs = 1
+                
+                $logs = create_folders
                
             } else {
                 $logs = 0
@@ -221,7 +229,7 @@ function create_folders {
         $date = Get-Date -Format "MM-dd-yyyy"
         if (Test-Path -Path C:\Users\$env:USERNAME\logs\$date) {
             Try {
-                $time = Get-Date -Format "HH-mm-ss"
+                $time = Get-Date -Format "HH:mm:ss"
                 mkdir C:\Users\$env:USERNAME\logs\$date\$time
                 $LOGSPATH = "C:\Users\$env:USERNAME\logs\$date\$time"
                 return 1
@@ -423,6 +431,7 @@ function createNewUser {
 }
 
 function userControl {
+    Clear-Host
     Write-Host "User Control" -ForegroundColor Green
     Write-Host "Choose an option:"
     Write-Host "1) Reset password"
@@ -538,8 +547,7 @@ function reinstallBasicPackages {
 
 function newSetUpSettings {
     Clear-Host
-    Write-Host "This is still being worked on, come back later!"
-    Start-Sleep 1.5
+    Write-Host "This is still being worked on, come back later!" -ForegroudColor -Red
     Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
     Write-Host "Choose an option:"
     Write-Host "1) Reset Windows Update"
