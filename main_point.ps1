@@ -61,6 +61,13 @@ class MenuItem {
     }
 }
 
+#-----------------------------------------------------------------------------------------------------
+# Menu class
+# This is the base class for all menus
+# 2 Parameters
+# 1) Name of the menu
+# 2) Array of menu items
+
 class Menu {
     [String]$name
     [MenuItem[]]$menuItems
@@ -92,7 +99,7 @@ class Menu {
         return
     }
 
-    #Just need to implement controls, then test out. 
+    # Just need to implement controls, then test out. 
     # Returns 2 ints, the first one is the selector, the 2nd is the quit code
     # Return quit codes:
     # -2 : Nothing happened, continue
@@ -173,6 +180,7 @@ class Menu {
         }
     }
 }
+#-----------------------------------------------------------------------------------------------------
 
 class MainMenu : Menu {
     MainMenu([String]$name, [MenuItem[]]$menuItems) : base($name, [MenuItem[]]$menuItems) {
