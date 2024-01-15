@@ -3,6 +3,13 @@
 $VERSION = "1.0.10"
 $LOGSPATH = ""
 
+function getKeyPress {
+    $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    # We don't need anything but the character they clicked right now
+    $key = $pressedKey.Character
+    return $key
+}
+
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -39,6 +46,137 @@ function countdown {
     }
     return # To actually do the thing in $i seconds
 }
+
+$windowSize = $host.UI.RawUI.WindowSize
+$script:windowWidth = $windowSize.Width
+$script:windowHeight = $windowSize.Height
+
+# Write-Host $windowWidth
+# Write-Host $windowHeight
+
+class MenuItem {
+    [String]$name
+    [ScriptBlock]$function
+
+    MenuItem([String]$name, [ScriptBlock]$function) {
+        $this.name = $name
+        $this.function = $function
+    }
+}
+
+class Menu {
+    [String]$name
+    [MenuItem[]]$menuItems
+
+    Menu([String]$name, [MenuItem[]]$menuItems) {
+        $this.name = $name
+        $this.menuItems = $menuItems
+    }
+
+    [void]fixDisplay([String]$text) {
+        $textLength = $text.Length
+        $spaces = ""
+        for($i=0; $i -lt (($script:windowWidth - $textLength)/2); $i++) {
+            $spaces = " " + $this.spaces
+        }
+        Write-Host $spaces -NoNewLine
+    }
+
+    [void]display_menu($selected) {
+        for($i=0; $i -lt $this.menuItems.length; $i++) {
+            if ($selected -eq $i) {
+                fixDisplay($this.menuItems[$i].name + "$i) >")
+                Write-Host "$i) >"$this.menuItems[$i].name -ForegroundColor White
+            } else {
+                fixDisplay($this.menuItems[$i].name + "$i)")
+                Write-Host "$i)" $this.menuItems[$i].name -ForegroundColor White
+            }
+        }
+        return
+    }
+
+    #Just need to implement controls, then test out. 
+    # Returns 2 ints, the first one is the selector, the 2nd is the quit code
+    # Return quit codes:
+    # -2 : Nothing happened, continue
+    # -1 : quit
+    # 0 : continue
+    # 1 : select the item
+
+    [Int[]]get_input($selected) {
+        # Starting so we know if the user clicked something to do, and not a random letter
+        $code = -2
+        while ($true) {
+            $key = getKeyPress
+            if ($key.VirtualKeyCode -eq 27) { #Exit code
+                $code = -1
+                Write-Host "Exiting..."
+                break
+            }
+            if ($key.Character -match "[0-9]") {
+                $selected = [Int]$key.Character -  48
+                $code = 1
+                break
+            }
+            if ($key.VirtualKeyCode -eq 38) {
+                if ($selected -le 0) {
+                    $selected = $this.menuItems.length-1
+                    break
+                } else {
+                    $selected -= 1
+                    break
+                }
+            }
+            if ($key.VirtualKeyCode -eq 40) {
+                if ($selected -ge $this.menuItems.length-1) {
+                    $selected = 0
+                    break
+                } else {
+                    $selected += 1
+                    break
+                }
+            }
+
+            if ($key.VirtualKeyCode -eq 13) {
+                $code = 1
+                break
+            }
+
+            if ($code -eq -2) {
+                continue
+            } else {
+                break
+            }
+        }
+        return @($selected, $code) # Put this here so it won't error out
+    }
+
+    [void]run() {
+        $selected = 0
+        $run = $true
+        while($run) {
+            Clear-Host
+            Write-Host "Press ESC to quit" -ForegroundColor Red
+            fixDisplay($this.name)
+            Write-Host $this.name -ForegroundColor Green
+
+            $this.display_menu($selected)
+            $userInput = $this.get_input($selected)
+            $selected = $userInput[0]
+            if($userInput[1] -eq -1) {
+                $run = $false
+            } elseif ($userInput[1] -eq 1) {
+                $this.menuItems[$selected].function.Invoke()
+                Start-Sleep 1.5
+                continue
+            } else {
+                continue
+
+            }
+        }
+    }
+}
+
 
 function StandardCleanup {
     if ($script:logs -eq 0) {
@@ -100,13 +238,13 @@ function StandardCleanupLogs {
     Write-Host "Logs will be located in C:\Users\$env:USERNAME\logs"
     Write-Host "Running DISM" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: "
+    Write-Host "Start Time: "
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
     Out-File $LOGSPATH\DISM.txt -InputObject "Time Started $time" -Append
     Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.txt
     Write-Host "Running SFC" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: "
+    Write-Host "Start Time: "
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
     sfc_log
     echo y | chkdsk C: /f /r /x /b 
@@ -370,6 +508,7 @@ function deleteUser {
                 Start-Sleep 1.5
                 return
             }
+            Clear-Host
             Write-Host "User deleted!" -ForegroundColor Green
             Start-Sleep 1.5
             recoverDeletedUsersFolders($user)
@@ -383,17 +522,17 @@ function deleteUser {
 
 function createNewUser {
     Clear-Host
-    Write-Host "Type in a password for the new user:" -ForegroundColor Green
-    $password = Read-Host -AsSecureString
+    Write-Host "Username for user:" -ForegroundColor Green
+    $username = Read-Host
     Clear-Host
     Write-Host "Full Name for user:" -ForegroundColor Green
     $fullName = Read-Host
     Clear-Host
+    Write-Host "Type in a password for the new user:" -ForegroundColor Green
+    $password = Read-Host -AsSecureString
+    Clear-Host
     Write-Host "Description for user:" -ForegroundColor Green
     $description = Read-Host
-    Clear-Host
-    Write-Host "Username for user:" -ForegroundColor Green
-    $username = Read-Host
     Clear-Host
     $result = confirm("Add to local administrators group?")
     if ($result -eq 1) {
@@ -573,11 +712,7 @@ function newSetUpSettings {
 
 
 
-function getKeyPress {
-    $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    $key = $pressedKey.Character
-    return $key
-}
+
 
 function MainMenu {
     while ($true) {
