@@ -4,10 +4,7 @@ $VERSION = "1.0.10"
 $LOGSPATH = ""
 
 function getKeyPress {
-    $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    # We don't need anything but the character they clicked right now
-    $key = $pressedKey.Character
-    return $key
+    return $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")   
 }
 
 function confirm {
