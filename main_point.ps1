@@ -82,10 +82,10 @@ class Menu {
     [void]display_menu($selected) {
         for($i=0; $i -lt $this.menuItems.length; $i++) {
             if ($selected -eq $i) {
-                fixDisplay($this.menuItems[$i].name + "$i) >")
+                $this.fixDisplay($this.menuItems[$i].name + "$i) >")
                 Write-Host "$i) >"$this.menuItems[$i].name -ForegroundColor White
             } else {
-                fixDisplay($this.menuItems[$i].name + "$i)")
+                $this.fixDisplay($this.menuItems[$i].name + "$i)")
                 Write-Host "$i)" $this.menuItems[$i].name -ForegroundColor White
             }
         }
@@ -154,7 +154,7 @@ class Menu {
         while($run) {
             Clear-Host
             Write-Host "Press ESC to quit" -ForegroundColor Red
-            fixDisplay($this.name)
+            $this.fixDisplay($this.name)
             Write-Host $this.name -ForegroundColor Green
 
             $this.display_menu($selected)
@@ -173,6 +173,25 @@ class Menu {
         }
     }
 }
+
+class MainMenu : Menu {
+    MainMenu([String]$name, [MenuItem[]]$menuItems) : base($name, [MenuItem[]]$menuItems) {
+        
+    }
+}
+$mainMenuItems = @(
+            [MenuItem]::new("DISM, SFC, CHKDSK, and reboot", {StandardCleanup}),
+            [MenuItem]::new("Create Admin account, and switch to it", {CreateAdminAccount}),
+            [MenuItem]::new("Disable Admin account", {DisableAdminAccount}),
+            [MenuItem]::new("Disable BitLocker", {DisableBitLocker}),
+            [MenuItem]::new("Boot Options", {BootOptions}),
+            [MenuItem]::new("Options", {ShowOptions}),
+            [MenuItem]::new("User Control", {userControl}),
+            [MenuItem]::new("New Setup Settings / OS Settings", {newSetUpSettings}),
+            [MenuItem]::new("Exit", {exit})
+        )
+$test = [MainMenu]::new("Main Menu", $mainMenuItems)
+$test.run()
 
 
 function StandardCleanup {
@@ -711,7 +730,7 @@ function newSetUpSettings {
 
 
 
-function MainMenu {
+function MainMenuFunction {
     while ($true) {
         Clear-Host
         if ($logs -eq 0) {
@@ -770,4 +789,4 @@ function MainMenu {
 #$ui.WindowTitle = "Quick Fix Script"
 
 $LOGS = create_folders
-MainMenu
+# MainMenu
