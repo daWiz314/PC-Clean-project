@@ -1,4 +1,11 @@
-
+# This script maybe a little bit of a mess
+# But that's cuz I am trying to do it
+# In a Object Orientated way
+# Are there better ways to do it?
+# Yes
+# Could use a different language to do it all easier
+# But
+# That would not get the job done in the way I need it done
 
 $VERSION = "1.0.10"
 $LOGSPATH = ""
