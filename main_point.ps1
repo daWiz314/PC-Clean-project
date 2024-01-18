@@ -247,6 +247,8 @@ $bootOptionsMenuItems = @(
 
 $bootOptions = [BootOptions]::new("Boot Options", $bootOptionsExtraItems, $bootOptionsMenuItems)
 
+#-----------------------------------------------------------------------------------------------------
+
 $mainMenu = [MainMenu]::new("Main Menu", $mainMenuExtraItems ,$mainMenuItems)
 $mainMenu.run()
 
