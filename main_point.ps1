@@ -77,10 +77,12 @@ class MenuItem {
 
 class Menu {
     [String]$name
+    [String[]]$extraItems
     [MenuItem[]]$menuItems
 
-    Menu([String]$name, [MenuItem[]]$menuItems) {
+    Menu([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
         $this.name = $name
+        $this.extraItems = $extraItems
         $this.menuItems = $menuItems
     }
 
@@ -121,15 +123,14 @@ class Menu {
             $key = getKeyPress
             if ($key.VirtualKeyCode -eq 27) { #Exit code
                 $code = -1
-                Write-Host "Exiting..."
                 break
             }
-            if ($key.Character -match "[0-9]") {
-                $selected = [Int]$key.Character -  48
+            if ($key.Character -match "[0-9]") { # This way the user can type in the number instead of selecting it
+                $selected = [Int]$key.Character -  48 # Numbers start at 48
                 $code = 1
                 break
             }
-            if ($key.VirtualKeyCode -eq 38) {
+            if ($key.VirtualKeyCode -eq 38) { # Up Arrow
                 if ($selected -le 0) {
                     $selected = $this.menuItems.length-1
                     break
@@ -138,7 +139,7 @@ class Menu {
                     break
                 }
             }
-            if ($key.VirtualKeyCode -eq 40) {
+            if ($key.VirtualKeyCode -eq 40) { # Down arrow
                 if ($selected -ge $this.menuItems.length-1) {
                     $selected = 0
                     break
@@ -148,18 +149,18 @@ class Menu {
                 }
             }
 
-            if ($key.VirtualKeyCode -eq 13) {
+            if ($key.VirtualKeyCode -eq 13) { # Enter button
                 $code = 1
                 break
             }
 
-            if ($code -eq -2) {
+            if ($code -eq -2) { # If we clicked a button that is not supported, do it all again
                 continue
             } else {
                 break
             }
         }
-        return @($selected, $code) # Put this here so it won't error out
+        return @($selected, $code) # A little messy, but this way it'll go through everything with only 1 return spot
     }
 
     [void]run() {
@@ -170,6 +171,9 @@ class Menu {
             Write-Host "Press ESC to quit" -ForegroundColor Red
             $this.fixDisplay($this.name)
             Write-Host $this.name -ForegroundColor Green
+            foreach($item in $this.extraItems) {
+                Write-Host $item -ForegroundColor Green
+            }
 
             $this.display_menu($selected)
             $userInput = $this.get_input($selected)
@@ -178,36 +182,73 @@ class Menu {
                 $run = $false
             } elseif ($userInput[1] -eq 1) {
                 $this.menuItems[$selected].function.Invoke()
-                Start-Sleep 1.5
                 continue
             } else {
                 continue
 
             }
         }
+        return
     }
 }
 #-----------------------------------------------------------------------------------------------------
 
+
+#-----------------------------------------------------------------------------------------------------
+# MainMenu class as well as set up
+# MainMenu class is not doing anything extra, compared to the base class. Setting up a class for it to keep code organized.
 class MainMenu : Menu {
-    MainMenu([String]$name, [MenuItem[]]$menuItems) : base($name, [MenuItem[]]$menuItems) {
-        
+    MainMenu([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) : base([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
+
     }
 }
+
+# Extra items to display, in the case of the MainMenu, just the version and if logs are turned on/off
+$mainMenuExtraItems = @(
+    $VERSION,
+    $(if($script:logs -eq 1) {"Logs are turned on!"} else {"Logs are turned off!"})
+)
+
+# Actual items to put in the menu
 $mainMenuItems = @(
             [MenuItem]::new("DISM, SFC, CHKDSK, and reboot", {StandardCleanup}),
             [MenuItem]::new("Create Admin account, and switch to it", {CreateAdminAccount}),
             [MenuItem]::new("Disable Admin account", {DisableAdminAccount}),
             [MenuItem]::new("Disable BitLocker", {DisableBitLocker}),
-            [MenuItem]::new("Boot Options", {BootOptions}),
+            [MenuItem]::new("Boot Options", {$bootOptions.run()}),
             [MenuItem]::new("Options", {ShowOptions}),
             [MenuItem]::new("User Control", {userControl}),
             [MenuItem]::new("New Setup Settings / OS Settings", {newSetUpSettings}),
             [MenuItem]::new("Exit", {exit})
         )
-$test = [MainMenu]::new("Main Menu", $mainMenuItems)
-$test.run()
 
+
+#-----------------------------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------------------------------
+# BootOptions Class as well as set up
+# Still not doing anything extra, just doing it to keep everything oragnized
+class BootOptions : Menu {
+    BootOptions([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) : base([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
+
+    }
+}
+
+$bootOptionsExtraItems = @(
+    "" # Nothing in here, as we don't have anything else to display right now
+)
+
+$bootOptionsMenuItems = @(
+    [MenuItem]::new("Boot into UEFI Settings", {countdown(3, "Booting into UEFI Settings"); shutdown /r /f /fw /t 00}),
+    [MenuItem]::new("Boot into Advanced Options", {countdown(3, "Booting into Advanced Options"); shutdown /f /r /o /t 00}),
+    [MenuItem]::new("Reboot", {countdown(3, "Rebooting..."); shutdown /f /r /t 00}),
+    [MenuItem]::new("Back to Main Menu", {return})
+)
+
+$bootOptions = [BootOptions]::new("Boot Options", $bootOptionsExtraItems, $bootOptionsMenuItems)
+
+$mainMenu = [MainMenu]::new("Main Menu", $mainMenuExtraItems ,$mainMenuItems)
+$mainMenu.run()
 
 function StandardCleanup {
     if ($script:logs -eq 0) {
