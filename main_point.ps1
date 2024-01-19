@@ -58,6 +58,12 @@ $script:windowHeight = $windowSize.Height
 # Write-Host $windowWidth
 # Write-Host $windowHeight
 
+#-----------------------------------------------------------------------------------------------------
+# MenuItem class
+# This contains all the menu items to display
+# The first item will be the display name
+# The second one with either be a function or just a block of code to execute
+
 class MenuItem {
     [String]$name
     [ScriptBlock]$function
@@ -67,6 +73,8 @@ class MenuItem {
         $this.function = $function
     }
 }
+#-----------------------------------------------------------------------------------------------------
+
 
 #-----------------------------------------------------------------------------------------------------
 # Menu class
@@ -248,6 +256,25 @@ $bootOptionsMenuItems = @(
 $bootOptions = [BootOptions]::new("Boot Options", $bootOptionsExtraItems, $bootOptionsMenuItems)
 
 #-----------------------------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------------------------------
+# BitLocker class as well as set up
+# This is a whole redo
+# Users will be able to enable and disable Bitlocker on any drive connected
+
+class BitLocker : Menu {
+    [String[]] $drives = @()
+    [String[]] $bitlockedDrives = @()
+    [String[]] $nonBitlockedDrives = @()
+    BitLocker([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) : base([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
+
+    }
+
+    [void]getDrives() {
+        $this.drives = (fsutil fsinfo drives) -split ":" | Where-Object {$_ -match "\W+"} | ForEach-Object {$_ -replace "\\"} | ForEach-Object {$_ -replace " "} # Finds just the drive letters, and removes all spaces
+        
+    }
+}
 
 $mainMenu = [MainMenu]::new("Main Menu", $mainMenuExtraItems ,$mainMenuItems)
 $mainMenu.run()
