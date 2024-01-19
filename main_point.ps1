@@ -257,22 +257,32 @@ $bootOptions = [BootOptions]::new("Boot Options", $bootOptionsExtraItems, $bootO
 
 #-----------------------------------------------------------------------------------------------------
 
+
+class DriveAttributes {
+    [String]$driveLetter
+    [String]$driveName
+    [Bool]$bitlocked
+    DriveAttributes([String]$driveLetter, [String]$driveName, [Bool]$bitlocked) {
+        $this.driveLetter = $driveLetter
+        $this.driveName = $driveName
+        $this.bitlocked = $bitlocked
+    }
+}
+
 #-----------------------------------------------------------------------------------------------------
 # BitLocker class as well as set up
 # This is a whole redo
 # Users will be able to enable and disable Bitlocker on any drive connected
 
 class BitLocker : Menu {
-    [String[]] $drives = @()
-    [String[]] $bitlockedDrives = @()
-    [String[]] $nonBitlockedDrives = @()
+    [DriveAttributes[]]$drives
     BitLocker([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) : base([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
 
     }
 
     [void]getDrives() {
-        $this.drives = (fsutil fsinfo drives) -split ":" | Where-Object {$_ -match "\W+"} | ForEach-Object {$_ -replace "\\"} | ForEach-Object {$_ -replace " "} # Finds just the drive letters, and removes all spaces
         
+
     }
 }
 
