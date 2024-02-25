@@ -213,7 +213,7 @@ function ShowOptions {
             if ($logs -eq 0) {
                 
                 $logs = create_folders
-               
+
             } else {
                 $logs = 0
             }
@@ -260,6 +260,9 @@ function create_folders {
 }
 
 function recoverDeletedUsersFolders {
+    Clear-Host "Still working on this!"
+    Start-Sleep 1.5
+    return
     [Parameter(Mandatory=$true)][string]$user
     Start-Sleep 2
     $choice = confirm("Copy deleted user: " +$user+ " folders?")
@@ -281,18 +284,18 @@ function recoverDeletedUsersFolders {
                     
                 }
             }
-            mkdir "C:\Users\$env:USERNAME\$user$i"
+            mkdir $dest
         } catch {
             Write-Host "Unable to create folder to move data to!" -ForegroundColor Red
             Start-Sleep 1.5
             return
         }
         
-        $dest = "C:\Users\$env:USERNAME\$user"
         Try {
-            robocopy $path $dest /MIR /R:1 /W:1 /copy:t /dcopy:T /MT:128 /log:$LOGSPATH\$user.txt /tee /j
+            robocopy $path $dest /MIR /R:1 /W:1 /MT:128 /log:$LOGSPATH\$user.txt /j
             Try {
-                Remove-Item -r -force $path
+                Remove-Directory -r -force -$path
+
             } catch {
                 Write-Host "Unable to delete " $user " folder!" -ForegroundColor Red
                 Start-Sleep 1.5
@@ -371,7 +374,8 @@ function deleteUser {
                 return
             }
             Write-Host "User deleted!" -ForegroundColor Green
-            Start-Sleep 1.5
+            Start-Sleep .5
+            Clear-Host
             recoverDeletedUsersFolders($user)
         } else {
             return
@@ -383,6 +387,9 @@ function deleteUser {
 
 function createNewUser {
     Clear-Host
+    Write-Host "Username for user:" -ForegroundColor Green
+    $username = Read-Host
+    Clear-Host
     Write-Host "Type in a password for the new user:" -ForegroundColor Green
     $password = Read-Host -AsSecureString
     Clear-Host
@@ -391,9 +398,6 @@ function createNewUser {
     Clear-Host
     Write-Host "Description for user:" -ForegroundColor Green
     $description = Read-Host
-    Clear-Host
-    Write-Host "Username for user:" -ForegroundColor Green
-    $username = Read-Host
     Clear-Host
     $result = confirm("Add to local administrators group?")
     if ($result -eq 1) {
