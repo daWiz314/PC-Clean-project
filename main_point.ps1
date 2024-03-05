@@ -100,13 +100,13 @@ function StandardCleanupLogs {
     Write-Host "Logs will be located in C:\Users\$env:USERNAME\logs"
     Write-Host "Running DISM" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: "
+    Write-Host "Current Time: $time"
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
     Out-File $LOGSPATH\DISM.txt -InputObject "Time Started $time" -Append
     Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.txt
     Write-Host "Running SFC" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: "
+    Write-Host "Current Time: $time"
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
     sfc_log
     echo y | chkdsk C: /f /r /x /b 
@@ -118,16 +118,14 @@ function StandardCleanupLogs {
 
 function CreateAdminAccount {
     Clear-Host
-    Write-Host "Creating admin account..."
+    Write-Host "Activating admin account..."
     Try {
         net user administrator /active:yes
     } Catch {
-        Write-Host "Unable to create admin account!" -ForegroundColor Red
+        Write-Host "Unable to activate admin account!" -ForegroundColor Red
         Start-Sleep 1.5
         return
     }
-    Write-Host "Switching to admin account..."
-    Start-Process powershell -Verb runAs
     Start-Sleep 1.5
     return
 }
@@ -438,20 +436,20 @@ function userControl {
     Clear-Host
     Write-Host "User Control" -ForegroundColor Green
     Write-Host "Choose an option:"
-    Write-Host "1) Reset password"
-    Write-Host "2) Delete user"
-    Write-Host "3) Create new user"
+    Write-Host "1) Create new user"
+    Write-Host "2) Reset password"
+    Write-Host "3) Delete user"
     Write-Host "q) Back to main menu"
     $option = getKeyPress
     switch ($option) {
         1 {
-            resetPassword
+            createNewUser
         }
         2 {
-            deleteUser
+            resetPassword
         }
         3 {
-            createNewUser
+            deleteUser
         }
         "q" {
             mainMenu
@@ -491,63 +489,11 @@ function resetWindowsUpdate {
     return
 }
 
-function removeDefaultPackages {
-    Clear-Host
-		Clear-Host
-		Write-Host "Still under construction" -ForegroundColor Red
-		Start-Sleep 1.5
-		return
-    Write-Host "Deleting default packages" -ForegroundColor Green
-    Write-Host "Please wait..." -ForegroundColor Red
-
-    # Removing default packages
-    Get-AppxPackage -AllUsers | Remove-AppxPackage
-
-    # Finished, explain to user
-    Clear-Host
-    Write-Host "Default packages removed!" -ForegroundColor Green
-    Start-Sleep 1.5
-    return
-}
-
-class FindPackage {
-    [string]$name
-    [string]$id
-    [bool]$checked
-    Package([string]$name, [string]$id, [bool]$checked) {
-        $this.name = $name
-        $this.id = $id
-        $this.checked = $checked
-    }
-    [void] toggle() {
-        if ($this.checked) {
-            $this.checked = $false
-        } else {
-            $this.checked = $true
-        }
-    }
-}
-
-
-function reinstallBasicPackages {
-		Clear-Host
-		Write-Host "Still under construction" -ForegroundColor Red
-		Start-Sleep 1.5
-		return
-    Clear-Host
-    Write-Host "Please select which packages to install:" -ForegroundColor Green
-    $selector = 0
-
-    $packages = @(FindPackage("Windows Camera"), FindPackage("Photos"))
-}
-
 
 
 # Settings for new setups or for existing set ups
 # To be added onto in the future
 # 1) Will reset the windows update that sometimes bugs out with updates. It will reset the folders related and reset the service involved
-# 2) Removes all the default packages, usually noted as bloatware, downside is it removes camera, calculator, photos, and other general use items as well
-# 3) Reinstalls the basic packages that are removed from option 2, but will present it as a list
 
 function newSetUpSettings {
     Clear-Host
@@ -555,19 +501,11 @@ function newSetUpSettings {
     Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
     Write-Host "Choose an option:"
     Write-Host "1) Reset Windows Update"
-    Write-Host "2) Remove all default preinstalled packages"
-    Write-Host "3) Reinstall basic packages (Camera, Calculator, etc.)"
     Write-Host "q) Back to main menu"
     $option = getKeyPress
     switch ($option) {
         1 {
             resetWindowsUpdate
-        }
-        2 {
-            removeDefaultPackages
-        }
-        3 {
-            reinstallBasicPackages
         }
         "q" {
             mainMenu
