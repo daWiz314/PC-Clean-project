@@ -9,6 +9,15 @@ Another way to run script with network access is to type the following into a po
 <code>irm https://dawiz314.github.io/code.html | iex </code>
 
 <ul>
+  <h3>1.1.0</h3>
+  <li>Updated Bitlocker section, massively improving usability</li>
+  <li>Fixed bug with not displaying time</li>
+  <li>Reordered user account creation menu</li>
+  <li>Fixed Countdown bug</li>
+  <li>Added Tee-Object to clean up operations so that the user can view progress in real time</li>
+</ul>
+
+<ul>
   <h3>1.0.10</h3>
   <li>Fixed chkdsk bug</li>
   <li>Testing copying folders/files from deleting a user</li>
