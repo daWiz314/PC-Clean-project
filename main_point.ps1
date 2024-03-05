@@ -68,7 +68,7 @@ function StandardCleanup {
 }
 
 function sfc_log {
-    $container = sfc.exe /scannow
+    sfc.exe /scannow | Tee-Object -Variable container
     #Splits them into groups
     $container = $container -split " "
     $newContainer = [System.Collections.ArrayList]::new()
@@ -109,7 +109,7 @@ function StandardCleanupNoLogs {
     Dism.exe /online /cleanup-image /restorehealth
     sfc.exe /scannow
     echo y | chkdsk C: /f /r /x /b
-    countdown(10, "SHUTTING DOWN")
+    countdown -seconds 10 -message "SHUTTING DOWN"
     shutdown /r /t 0
 }
 
@@ -122,7 +122,7 @@ function StandardCleanupLogs {
     Write-Host "Current Time: $time"
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
     Out-File $LOGSPATH\DISM.txt -InputObject "Time Started $time" -Append
-    Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.txt
+    Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $LOGSPATH\DISM.txt
     Write-Host "Running SFC" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
     Write-Host "Current Time: $time"
@@ -130,7 +130,7 @@ function StandardCleanupLogs {
     sfc_log
     echo y | chkdsk C: /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
-    countdown(10, "SHUTTING DOWN")
+    countdown -seconds 10 -message "SHUTTING DOWN"
     shutdown /r /t 0
     getkeyPress
 }
@@ -281,17 +281,17 @@ function BootOptions {
     switch ($option) {
         1 {
             Clear-Host
-            countdown(3, "Booting into UEFI Settings")
+            countdown -seconds 3 -message "Booting into UEFI Settings"
             shutdown /r /f /fw /t 00
         }
         2 {
             Clear-Host
-            countdown(3, "Booting into Advanced Startup")
+            countdown -seconds 3 -message "Booting into Advanced Startup"
             shutdown /r /f /o /t 00
         }
         3 {
             Clear-Host
-            countdown(3, "Rebooting")
+            countdown -seconds 3 -message "Rebooting"
             shutdown /r /f /t 00
         }
         "q" {
