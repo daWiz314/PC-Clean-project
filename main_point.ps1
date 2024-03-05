@@ -1,8 +1,20 @@
 
 
-$VERSION = "1.0.10"
+$VERSION = "1.1.0"
 $LOGSPATH = ""
 
+
+class bitlockerDrive {
+    [string]$driveLetter
+    [bool]$lockStatus
+    [string]$encryptionPercentage
+
+    bitlockerDrive([string]$driveLetter, [bool]$lockStatus, [string]$encryptionPercentage) {
+        $this.driveLetter = $driveLetter
+        $this.lockStatus = $lockStatus
+        $this.encryptionPercentage = $encryptionPercentage
+    }
+}
 
 function getKeyPress {
     $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
@@ -166,6 +178,96 @@ function DisableBitLocker {
     Start-Sleep 1.5
     return
     
+}
+
+function bitlocker {
+    $container = fsutil.exe fsinfo drives
+    $container = $container -split ":"
+    $container = ($container | Where-Object {$_ -match "\s\w"}) -replace "\\", ""
+    Clear-Host
+
+    $bitlockerDrives = @()
+    
+    foreach ($drive in $container.trim()) {
+        $container2 = manage-bde.exe $drive":" -status
+        $container2 = $container2 -split "\n"
+        $lock_status = $container2 | Where-Object {$_ -match "Lock Status"}
+        if ($lock_status -match "Unlocked") {
+            $lock_status = $false
+        } else {
+            $lock_status = $true
+        }
+        $encryption_percentage = $container2 | Where-Object {$_ -match "Percentage Encrypted"}
+        $encryption_percentage = $encryption_percentage -replace ".*:\s", ""
+    
+        $bitlockerDrives += [bitlockerDrive]::new($drive+":", $lock_status, $encryption_percentage)
+    }
+    
+    $lockedDrives = @()
+    $unlockedDrives = @()
+
+    foreach ($drive in $bitlockerDrives) {
+        if ($drive.lockStatus -eq $true) {
+            $lockedDrives += $drive
+        } else {
+            $unlockedDrives += $drive
+        }
+    }
+
+    Write-Host "Locked Drives: " -NoNewline
+    foreach ($drive in $lockedDrives) {
+        Write-Host $drive.driveLetter -NoNewline
+        Write-Host " " -NoNewline
+    }
+    Write-Host ""
+    Write-Host "Unlocked Drives: " -NoNewline
+    foreach ($drive in $unlockedDrives) {
+        Write-Host $drive.driveLetter -NoNewline
+        Write-Host " " -NoNewline
+    }
+    Write-Host ""
+    if ($lockedDrives.count -eq 0) {
+        Write-Host "No locked drives!" -ForegroundColor Green
+        Start-Sleep 1.5
+        return
+    }
+    Write-Host "Unlock any drives? (y/n)"
+    $choice = getKeyPress
+    if ($choice -eq 'y') {
+        unlockDrive($lockedDrives)
+    } else {
+        return
+    }
+}
+
+function unlockDrive {
+    param (
+        [Parameter(Mandatory=$true)][bitlockerDrive[]]$bitlockerDrives
+    )
+    while ($true) {
+        Clear-Host
+        Write-Host "Choose a drive to unlock:"
+        for ($i=0; $i -lt $bitlockerDrives.count; $i++) {
+            Write-Host "$i)" $bitlockerDrives[$i].driveLetter
+        }
+        Write-Host "q) Main Menu"
+        $choice = Read-Host ">"
+        if ($choice -eq 'q') {
+            MainMenu
+        } 
+        if ([int]$choice -lt $bitlockerDrives.count-1) {
+            Write-Host "Attempting to unlock drive: " $bitlockerDrives[$choice].driveLetter
+            manage-bde.exe $bitlockerDrives[[int]$choice].driveLetter"-off"
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            MainMenu
+        } else {
+            Write-Host "Invalid choice!" -ForegroundColor Red
+            Write-Host "Please try again!" -ForegroundColor Red
+            Start-Sleep 1
+            continue
+        }
+    }
 }
 
 function BootOptions {
@@ -338,8 +440,11 @@ function selectUser {
     if ($choice -eq 'q') {
         return
     }
-    Write-Host "You chose: " $users[$choice]
-    Start-Sleep 1
+    if ([int]$choice -lt 0 -or [int]$choice -gt $users.count) {
+        Write-Host "Invalid choice!" -ForegroundColor Red
+        Start-Sleep 1.5
+        selectUser
+    }
     Clear-Host
     return $users[$choice]
 }
@@ -534,7 +639,7 @@ function MainMenu {
         Write-Host "1) DISM, SFC, CHKDSK, and reboot"
         Write-Host "2) Create Admin account, and switch to it"
         Write-Host "3) Disable Admin account"
-        Write-Host "4) Disable BitLocker"
+        Write-Host "4) BitLocker"
         Write-Host "5) Boot Options"
         Write-Host "6) Options"
         Write-Host "7) User Control"
@@ -553,7 +658,7 @@ function MainMenu {
                 DisableAdminAccount
             }
             4 {
-                DisableBitLocker
+                BitLocker
             }
             5 {
                 BootOptions
