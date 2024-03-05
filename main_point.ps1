@@ -3,6 +3,13 @@
 $VERSION = "1.0.10"
 $LOGSPATH = ""
 
+
+function getKeyPress {
+    $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    $key = $pressedKey.Character
+    return $key
+}
+
 function confirm {
     param (
         [Parameter(Mandatory=$true)][string]$message
@@ -513,13 +520,6 @@ function newSetUpSettings {
     }
 }
 
-
-
-function getKeyPress {
-    $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    $key = $pressedKey.Character
-    return $key
-}
 
 function MainMenu {
     while ($true) {
