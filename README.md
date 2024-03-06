@@ -15,6 +15,7 @@ Another way to run script with network access is to type the following into a po
   <li>Reordered user account creation menu</li>
   <li>Fixed Countdown bug</li>
   <li>Added Tee-Object to clean up operations so that the user can view progress in real time</li>
+  <li>Fixed formatting bug for new OS settings</li>
 </ul>
 
 <ul>
