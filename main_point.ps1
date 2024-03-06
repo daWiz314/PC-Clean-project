@@ -609,7 +609,7 @@ function resetWindowsUpdate {
 
 function newSetUpSettings {
     Clear-Host
-    Write-Host "This is still being worked on, come back later!" -ForegroudColor -Red
+    Write-Host "This is still being worked on, come back later!" -ForegroudColor Red
     Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
     Write-Host "Choose an option:"
     Write-Host "1) Reset Windows Update"
