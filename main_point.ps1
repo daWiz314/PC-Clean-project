@@ -1,4 +1,5 @@
 
+#Test change to verify git is working
 
 $VERSION = "1.1.0"
 $LOGSPATH = ""
