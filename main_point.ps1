@@ -739,7 +739,7 @@ function MainMenu {
         Write-Host "6) Options"
         Write-Host "7) User Control"
         Write-Host "8) New Setup Settings / OS Settings"
-        Write-Host "9) Change Log"
+        Write-Host "9) Patch Notes"
         Write-Host "q) Exit"
         $choice = getKeyPress
 
