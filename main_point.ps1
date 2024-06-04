@@ -327,7 +327,7 @@ function BootOptions {
 
 function ShowOptions {
     Clear-Host
-    $logs = $LOGSPATH[1]
+    $logs = $Global:LOGSPATH
     if ($logs -eq 0) {
         Write-Host "Logs turned off!" -ForegroundColor Red
     } else {
@@ -724,7 +724,7 @@ function changeTimeZone {
 function MainMenu {
     while ($true) {
         Clear-Host
-        if ($LOGSPATH[1] -eq 0) {
+        if ($LOGSPATH -eq 0) {
             Write-Host "Logs turned off!" -ForegroundColor darkRed
         } else {
             Write-Host "Logs turned on!" -ForegroundColor darkGreen
