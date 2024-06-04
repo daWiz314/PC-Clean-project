@@ -724,7 +724,7 @@ function changeTimeZone {
 function MainMenu {
     while ($true) {
         Clear-Host
-        if ($LOGSPATH -eq 0) {
+        if ($Global:LOGSPATH -eq 0) {
             Write-Host "Logs turned off!" -ForegroundColor darkRed
         } else {
             Write-Host "Logs turned on!" -ForegroundColor darkGreen
