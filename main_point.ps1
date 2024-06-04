@@ -783,6 +783,6 @@ function MainMenu {
 # Causes issues.
 #$ui.WindowTitle = "Quick Fix Script"
 
-$LOGSPATH = create_folders
+$Global:LOGSPATH = create_folders
 bitlocker_helper
 MainMenu
