@@ -141,7 +141,7 @@ function StandardCleanupNoLogs {
     sfc.exe /scannow
     checkdisk_no_log
     countdown -seconds 10 -message "SHUTTING DOWN"
-    shutdown /r /t 0
+    shutdown /f /r /t 0
 }
 
 function StandardCleanupLogs {
