@@ -661,16 +661,55 @@ function newSetUpSettings {
     Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
     Write-Host "Choose an option:"
     Write-Host "1) Reset Windows Update"
+    Write-Host "2) Change Time Zone"
     Write-Host "q) Back to main menu"
     $option = getKeyPress
     switch ($option) {
         1 {
             resetWindowsUpdate
         }
+        2 {
+            changeTimeZone
+        }
         "q" {
             mainMenu
         }
     }
+}
+
+# Function for changing time zone, only adding US based ones for now, will add more later.
+#TODO: Add more time zones
+function changeTimeZone {
+    Clear-Host
+    Write-Host "Change Time Zone" -ForegroundColor Green
+    Write-Host "Choose a time zone:"
+    Write-Host "1) Eastern Time"
+    Write-Host "2) Central Time"
+    Write-Host "3) Mountain Time"
+    Write-Host "4) Pacific Time"
+    Write-Host "q) Back to main menu"
+    $option = getKeyPress
+    switch ($option) {
+        1 {
+            Set-TimeZone -Id "Eastern Standard Time"
+        }
+        2 {
+            Set-TimeZone -Id "Central Standard Time"
+        }
+        3 {
+            Set-TimeZone -Id "Mountain Standard Time"
+        }
+        4 {
+            Set-TimeZone -Id "Pacific Standard Time"
+        }
+        "q" {
+            mainMenu
+        }
+    }
+    # TODO:
+        # Add error catching here
+    W32tm.exe /resync /force
+    return
 }
 
 

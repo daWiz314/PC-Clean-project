@@ -14,6 +14,7 @@ Another way to run script with network access is to type the following into a po
   <li>Added patch notes viewer</li>
   <li>Added option to remove root folder and recreate it</li>
   <li>Added option to completely remove data from this script</li>
+  <li>Added option to change timezone, and after changing it, it resyncs</li>
 </ul>
 
 <ul>
