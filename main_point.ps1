@@ -312,7 +312,7 @@ function BootOptions {
             shutdown /r /f /t 00
         }
         "q" {
-            main_menu
+            MainMenu
         }
     }
 }
@@ -351,8 +351,8 @@ function ShowOptions {
         3 {
             full_clear_logs
         }
-        "q" {
-            main_menu
+        'q' {
+            MainMenu
         }
     }
 }
