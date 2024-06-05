@@ -18,6 +18,101 @@ class bitlockerDrive {
     }
 }
 
+# Need to fix this so it can read all drives, and stop erroring out
+function bitlocker_helper {
+    $container = fsutil.exe fsinfo drives
+    $container = $container -split ":"
+    $container = ($container | Where-Object {$_ -match "\s\w"}) -replace "\\", ""
+    Clear-Host
+
+    $Global:bitlockerDrives = @()
+    
+    foreach ($drive in $container.trim()) {
+        $container2 = manage-bde.exe $drive":" -status
+        $container2 = $container2 -split "\n"
+        $lock_status = $container2 | Where-Object {$_ -match "Lock Status"}
+        if ($lock_status -match "Unlocked") {
+            $lock_status = $false
+        } else {
+            $lock_status = $true
+        }
+        $encryption_percentage = $container2 | Where-Object {$_ -match "Percentage Encrypted"}
+        $encryption_percentage = $encryption_percentage -replace ".*:\s", ""
+    
+        $bitlockerDrives += [bitlockerDrive]::new($drive+":", $lock_status, $encryption_percentage)
+    }
+    
+    $Global:lockedDrives = @()
+    $Global:unlockedDrives = @()
+
+    foreach ($drive in $bitlockerDrives) {
+        if ($drive.lockStatus -eq $true) {
+            $Global:lockedDrives += $drive
+        } else {
+            $Global:unlockedDrives += $drive
+        }
+    }
+}
+function bitlocker {
+    Clear-Host
+    bitlocker_helper
+    Write-Host "BitLocker" -ForegroundColor Green
+    Write-Host "Locked Drives: " -NoNewline
+    foreach ($drive in $Global:lockedDrives) {
+        Write-Host $drive.driveLetter -NoNewline
+        Write-Host " " -NoNewline
+    }
+    Write-Host ""
+    Write-Host "Unlocked Drives: " -NoNewline
+    foreach ($drive in $Global:unlockedDrives) {
+        Write-Host $drive.driveLetter -NoNewline
+        Write-Host " " -NoNewline
+    }
+    Write-Host ""
+    if ($Global:lockedDrives.count -eq 0) {
+        Write-Host "No locked drives!" -ForegroundColor Green
+        Start-Sleep 1.5
+        return
+    }
+    Write-Host "Unlock any drives? (y/n)"
+    $choice = getKeyPress
+    if ($choice -eq 'y') {
+        unlockDrive($Global:lockedDrives)
+    } else {
+        return
+    }
+}
+
+function unlockDrive {
+    param (
+        [Parameter(Mandatory=$true)][bitlockerDrive[]]$bitlockerDrives
+    )
+    while ($true) {
+        Clear-Host
+        Write-Host "Choose a drive to unlock:"
+        for ($i=0; $i -lt $bitlockerDrives.count; $i++) {
+            Write-Host "$i)" $bitlockerDrives[$i].driveLetter
+        }
+        Write-Host "q) Main Menu"
+        $choice = Read-Host ">"
+        if ($choice -eq 'q') {
+            MainMenu
+        } 
+        if ([int]$choice -lt $bitlockerDrives.count-1) {
+            Write-Host "Attempting to unlock drive: " $bitlockerDrives[$choice].driveLetter
+            manage-bde.exe $bitlockerDrives[[int]$choice].driveLetter"-off"
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            MainMenu
+        } else {
+            Write-Host "Invalid choice!" -ForegroundColor Red
+            Write-Host "Please try again!" -ForegroundColor Red
+            Start-Sleep 1
+            continue
+        }
+    }
+}
+
 function getKeyPress {
     $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     $key = $pressedKey.Character
@@ -94,12 +189,46 @@ function StandardCleanup {
             }
         }
         2 {
-            StandardCleanupWithSource
+            if ($Global:LOGSPATH -eq 0) {
+                StandardCleanupWithSourceNoLogs
+            } else {
+                StandardCleanupWithSource
+            }
         }
         'q' {
             MainMenu
         }
     }
+}
+
+# Function standard cleanup with source and no logging
+function StandardCleanupWithSourceNoLogs {
+    $log = $Global:LOGSPATH[2]
+    Write-Host "Starting standard cleanup without logs in user account folder"
+    Write-Host "Running DISM" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: $time"
+    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+    
+    # Get the source
+    $source = ""
+    # run this to update drives
+    bitlocker_helper
+    foreach ($drive in $Global:bitlockerDrives) {
+        if ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.wim")) {
+            $source = $drive.driveLetter + "\sources\install.wim"
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
+            $source = $drive.driveLetter + "\sources\install.esd"
+            break
+        }
+    }
+    Dism.exe /online /cleanup-image /restorehealth /source:$source
+    sfc.exe /scannow
+    checkdisk_no_log
+    countdown -seconds 10 -message "SHUTTING DOWN"
+    shutdown /f /r /t 0
+    getkeyPress
 }
 
 # Function standard cleanup with source
@@ -127,6 +256,11 @@ function StandardCleanupWithSource {
         }
     }
     Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $log\DISM.txt
+    sfc_log
+    checkdisk_log
+    countdown -seconds 10 -message "SHUTTING DOWN"
+    shutdown /f /r /t 0
+    getkeyPress
 }
 
 function sfc_log {
@@ -229,7 +363,6 @@ function StandardCleanupLogs {
     # echo y | chkdsk C: /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
     checkdisk_log
-    getkeypress
     countdown -seconds 10 -message "SHUTTING DOWN"
     shutdown /f /r /t 0
     getkeyPress
@@ -264,100 +397,6 @@ function DisableAdminAccount {
     return
 }
 
-# Need to fix this so it can read all drives, and stop erroring out
-function bitlocker_helper {
-    $container = fsutil.exe fsinfo drives
-    $container = $container -split ":"
-    $container = ($container | Where-Object {$_ -match "\s\w"}) -replace "\\", ""
-    Clear-Host
-
-    $Global:bitlockerDrives = @()
-    
-    foreach ($drive in $container.trim()) {
-        $container2 = manage-bde.exe $drive":" -status
-        $container2 = $container2 -split "\n"
-        $lock_status = $container2 | Where-Object {$_ -match "Lock Status"}
-        if ($lock_status -match "Unlocked") {
-            $lock_status = $false
-        } else {
-            $lock_status = $true
-        }
-        $encryption_percentage = $container2 | Where-Object {$_ -match "Percentage Encrypted"}
-        $encryption_percentage = $encryption_percentage -replace ".*:\s", ""
-    
-        $bitlockerDrives += [bitlockerDrive]::new($drive+":", $lock_status, $encryption_percentage)
-    }
-    
-    $Global:lockedDrives = @()
-    $Global:unlockedDrives = @()
-
-    foreach ($drive in $bitlockerDrives) {
-        if ($drive.lockStatus -eq $true) {
-            $Global:lockedDrives += $drive
-        } else {
-            $Global:unlockedDrives += $drive
-        }
-    }
-}
-function bitlocker {
-    Clear-Host
-    bitlocker_helper
-    Write-Host "BitLocker" -ForegroundColor Green
-    Write-Host "Locked Drives: " -NoNewline
-    foreach ($drive in $Global:lockedDrives) {
-        Write-Host $drive.driveLetter -NoNewline
-        Write-Host " " -NoNewline
-    }
-    Write-Host ""
-    Write-Host "Unlocked Drives: " -NoNewline
-    foreach ($drive in $Global:unlockedDrives) {
-        Write-Host $drive.driveLetter -NoNewline
-        Write-Host " " -NoNewline
-    }
-    Write-Host ""
-    if ($Global:lockedDrives.count -eq 0) {
-        Write-Host "No locked drives!" -ForegroundColor Green
-        Start-Sleep 1.5
-        return
-    }
-    Write-Host "Unlock any drives? (y/n)"
-    $choice = getKeyPress
-    if ($choice -eq 'y') {
-        unlockDrive($Global:lockedDrives)
-    } else {
-        return
-    }
-}
-
-function unlockDrive {
-    param (
-        [Parameter(Mandatory=$true)][bitlockerDrive[]]$bitlockerDrives
-    )
-    while ($true) {
-        Clear-Host
-        Write-Host "Choose a drive to unlock:"
-        for ($i=0; $i -lt $bitlockerDrives.count; $i++) {
-            Write-Host "$i)" $bitlockerDrives[$i].driveLetter
-        }
-        Write-Host "q) Main Menu"
-        $choice = Read-Host ">"
-        if ($choice -eq 'q') {
-            MainMenu
-        } 
-        if ([int]$choice -lt $bitlockerDrives.count-1) {
-            Write-Host "Attempting to unlock drive: " $bitlockerDrives[$choice].driveLetter
-            manage-bde.exe $bitlockerDrives[[int]$choice].driveLetter"-off"
-            Write-Host "Press any key to continue..."
-            getKeyPress
-            MainMenu
-        } else {
-            Write-Host "Invalid choice!" -ForegroundColor Red
-            Write-Host "Please try again!" -ForegroundColor Red
-            Start-Sleep 1
-            continue
-        }
-    }
-}
 
 function BootOptions {
     Clear-Host
