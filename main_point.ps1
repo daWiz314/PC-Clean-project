@@ -133,7 +133,7 @@ function StandardCleanupLogs {
     }
     $log = $LOGSPATH[2]
     Write-Host "Starting standard cleanup with logs in user account folder"
-    Write-Host "Logs will be located in " + $LOGSPATH[2]
+    Write-Host "Logs will be located in " $log
     Write-Host "Running DISM" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
     Write-Host "Current Time: $time"
@@ -179,22 +179,6 @@ function DisableAdminAccount {
     Write-Host "Admin account disabled!" -ForegroundColor Green
     Start-Sleep 1.5
     return
-}
-
-function DisableBitLocker {
-    Clear-Host
-    Write-Host "Disabling BitLocker..."
-    Try {
-        manage-bde -off C:
-    } Catch {
-        Write-Host "Unable to disable BitLocker!" -ForegroundColor Red
-        Start-Sleep 1.5
-        return
-    }
-    Write-Host "BitLocker disabled!" -ForegroundColor Green
-    Start-Sleep 1.5
-    return
-    
 }
 
 function bitlocker {
