@@ -678,6 +678,31 @@ function userControl {
     userControl
 }
 
+# Settings for new setups or for existing set ups
+# To be added onto in the future
+# 1) Will reset the windows update that sometimes bugs out with updates. It will reset the folders related and reset the service involved
+
+function newSetUpSettings {
+    Clear-Host
+    Write-Host "This is still being worked on, come back later!" -ForegroudColor Red
+    Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
+    Write-Host "Choose an option:"
+    Write-Host "1) Reset Windows Update"
+    Write-Host "2) Change Time Zone"
+    Write-Host "q) Back to main menu"
+    $option = getKeyPress
+    switch ($option) {
+        1 {
+            resetWindowsUpdate
+        }
+        2 {
+            changeTimeZone
+        }
+        "q" {
+            mainMenu
+        }
+    }
+}
 
 # Resets the windows update folders related to it.
 function resetWindowsUpdate {
@@ -706,34 +731,6 @@ function resetWindowsUpdate {
     Write-Host "Windows Update reset!" -ForegroundColor Green
     Start-Sleep 1.5
     return
-}
-
-
-
-# Settings for new setups or for existing set ups
-# To be added onto in the future
-# 1) Will reset the windows update that sometimes bugs out with updates. It will reset the folders related and reset the service involved
-
-function newSetUpSettings {
-    Clear-Host
-    Write-Host "This is still being worked on, come back later!" -ForegroudColor Red
-    Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
-    Write-Host "Choose an option:"
-    Write-Host "1) Reset Windows Update"
-    Write-Host "2) Change Time Zone"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
-        1 {
-            resetWindowsUpdate
-        }
-        2 {
-            changeTimeZone
-        }
-        "q" {
-            mainMenu
-        }
-    }
 }
 
 # Function for changing time zone, only adding US based ones for now, will add more later.
@@ -779,7 +776,6 @@ function changeTimeZone {
             return
         }
     }
-
     
     getkeypress
     return
