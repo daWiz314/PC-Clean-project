@@ -6,6 +6,101 @@ $LOGSPATH = ""
 # Website for the script
 $website = "dawiz314.github.io"
 
+
+function add_lines {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$true)][int]$lines
+    )
+    for($i=0; $i -lt $lines; $i++) {
+        Write-Host
+    }
+
+}
+
+function add_spaces {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$true)][int]$spaces
+    )
+    $test = "";
+    for($i=0; $i -lt $spaces; $i++) {
+        $test += " "
+    }
+    return $test
+
+}
+
+function display_message {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$true)][string[]]$messages,
+        [Parameter(Mandatory=$false)][int]$selection=1
+    )
+    Clear-Host
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$message.Length - 1)
+    foreach($message in $messages) {
+        if ($selection -eq $messages.IndexOf($message)) {
+            $test = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-$message.Length - 1)
+            Write-Host $test">"$message
+        } else {
+            $test = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-$message.Length)
+            Write-Host $test$message
+        }
+    }
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$nessage.Length)
+    $key = detectKeyPress
+    if ($key -eq "up") {
+        if ($selection -gt 1) {
+            $selection--
+        } else {
+            $selection = $messages.Length - 1
+        }
+    } elseif ($key -eq "down") {
+        if ($selection -lt ($messages.Length - 1)) {
+            $selection++
+        } else {
+            $selection = 1
+        }
+    } elseif ($key -eq "enter") {
+        return $selection
+    } elseif ($key -eq "q") {
+        return "q"
+    }
+    display_message -messages $messages -selection $selection
+}
+
+# Detect key press
+# 38 = Up arrow
+# 40 = Down arrow
+# 37 = Left arrow
+# 39 = Right arrow
+# 13 = Enter
+function detectKeyPress {
+    $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    switch ($key.VirtualKeyCode) {
+        38 {
+            return "up"
+        }
+        40 {
+            return "down"
+        }
+        37 {
+            return "left"
+        }
+        39 {
+            return "right"
+        }
+        13 {
+            return "enter"
+        }
+        81 {
+            return "q"
+        }
+    }
+    detectKeyPress
+
+}
 class bitlockerDrive {
     [string]$driveLetter
     [bool]$lockStatus
@@ -114,9 +209,7 @@ function unlockDrive {
 }
 
 function getKeyPress {
-    $pressedKey = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    $key = $pressedKey.Character
-    return $key
+    return $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
 
 function confirm {
@@ -791,6 +884,42 @@ function changeTimeZone {
     return
 }
 
+function main_menu {
+    $messages = @("Main Menu", "1) DISM, SFC, CHKDSK, and reboot", "2) Create Admin account, and switch to it", "3) Disable Admin account", "4) BitLocker", "5) Boot Options", "6) Options", "7) User Control", "8) New Setup Settings / OS Settings", "9) Patch Notes", "q) Exit")
+    switch(display_message -messages $messages) {
+        1 {
+            StandardCleanup
+        }
+        2 {
+            CreateAdminAccount
+        }
+        3 {
+            DisableAdminAccount
+        }
+        4 {
+            BitLocker
+        }
+        5 {
+            BootOptions
+        }
+        6 {
+            ShowOptions
+        }
+        7 {
+            userControl
+        }
+        8 {
+            newSetUpSettings
+        }
+        9 {
+            changeLog
+        }
+        9 {
+            exit
+        }
+    
+    }
+}
 
 function MainMenu {
     while ($true) {
@@ -856,4 +985,4 @@ function MainMenu {
 
 $Global:LOGSPATH = create_folders
 bitlocker_helper
-MainMenu
+main_menu
