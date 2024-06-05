@@ -222,6 +222,11 @@ function StandardCleanupWithSourceNoLogs {
             break
         }
     }
+    if ($source -eq "") {
+        Write-Host "Unable to find source!" -ForegroundColor Red
+        Start-Sleep 1.5
+        standardCleanup
+    }
     Dism.exe /online /cleanup-image /restorehealth /source:$source
     sfc.exe /scannow
     checkdisk_no_log
@@ -253,6 +258,11 @@ function StandardCleanupWithSource {
             $source = $drive.driveLetter + "\sources\install.esd"
             break
         }
+    }
+    if ($source -eq "") {
+        Write-Host "Unable to find source!" -ForegroundColor Red
+        Start-Sleep 1.5
+        standardCleanup
     }
     Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $log\DISM.txt
     sfc_log
