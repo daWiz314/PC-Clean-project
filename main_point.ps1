@@ -3,7 +3,8 @@
 
 $VERSION = "1.1.1"
 $LOGSPATH = ""
-
+# Website for the script
+$website = "dawiz314.github.io"
 
 class bitlockerDrive {
     [string]$driveLetter
@@ -59,6 +60,16 @@ function countdown {
     }
     return # To actually do the thing in $i seconds
 }
+
+# function to get change log and read it
+function changeLog {
+    Clear-Host
+    $log = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\change_log.txt"
+    irm $website/patch_notes.txt > $log
+    Get-Content -Path $log -Raw | more
+    getKeyPress
+}
+
 
 function StandardCleanup {
     if ($script:logs -eq 0) {
@@ -651,6 +662,7 @@ function MainMenu {
         Write-Host "6) Options"
         Write-Host "7) User Control"
         Write-Host "8) New Setup Settings / OS Settings"
+        Write-Host "9) Change Log"
         Write-Host "q) Exit"
         $choice = getKeyPress
 
@@ -678,6 +690,9 @@ function MainMenu {
             }
             8 {
                 newSetUpSettings
+            }
+            9 {
+                changeLog
             }
             'q'{
                 Clear-Host
