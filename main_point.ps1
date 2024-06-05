@@ -1,7 +1,7 @@
 
 #Test change to verify git is working
 
-$VERSION = "1.1.0"
+$VERSION = "1.1.1"
 $LOGSPATH = ""
 
 
@@ -91,15 +91,16 @@ function sfc_log {
         }
     } 
 
+    $log = $LOGSPATH[2]
     $time = Get-Date -Format "HH:mm:ss"
     #Output it to a file
-    Out-File $LOGSPATH\sfc.txt -InputObject "Starting SFC at: $time" -Append
-
+    Out-File $log\sfc.txt -InputObject "Starting SFC at: $time" -Append
+    
     for ($i=0; $i -lt $newContainer.Count; $i++) {
         if ($newContainer[$i] -eq ".") {
-            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append
+            Out-File $log\sfc.txt -InputObject $newContainer[$i] -Append
         } else {
-            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
+            Out-File $log\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
         }
     }
 }
@@ -116,14 +117,15 @@ function StandardCleanupNoLogs {
 
 function StandardCleanupLogs {
     Clear-Host
+    $log = $LOGSPATH[2]
     Write-Host "Starting standard cleanup with logs in user account folder"
-    Write-Host "Logs will be located in C:\Users\$env:USERNAME\logs"
+    Write-Host "Logs will be located in " + $LOGSPATH[2]
     Write-Host "Running DISM" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
     Write-Host "Current Time: $time"
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Out-File $LOGSPATH\DISM.txt -InputObject "Time Started $time" -Append
-    Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $LOGSPATH\DISM.txt
+    Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
+    Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $log\DISM.txt
     Write-Host "Running SFC" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
     Write-Host "Current Time: $time"
@@ -303,6 +305,7 @@ function BootOptions {
 
 function ShowOptions {
     Clear-Host
+    $logs = $LOGSPATH[1]
     if ($logs -eq 0) {
         Write-Host "Logs turned off!" -ForegroundColor Red
     } else {
@@ -333,36 +336,39 @@ function ShowOptions {
 }
 
 function create_folders {
-    if (Test-Path -Path C:\Users\$env:USERNAME\logs) {
+    # New log file location
+    # C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup_\logs
+    $LOGSPATH = ""
+    if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup) {
         $date = Get-Date -Format "MM-dd-yyyy"
-        if (Test-Path -Path C:\Users\$env:USERNAME\logs\$date) {
+        if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date) {
             Try {
                 $time = Get-Date -Format "HH_mm_ss"
-                mkdir C:\Users\$env:USERNAME\logs\$date\$time
-                $LOGSPATH = "C:\Users\$env:USERNAME\logs\$date\$time"
-                return 1
+                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time
+                $LOGSPATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time"
+                return (1, $LOGSPATH)
             } Catch {
                 Write-Host "Unable to create log folder!" -ForegroundColor Red
                 Start-Sleep 1.5
-                return 0
+                return (0, $LOGSPATH)
         }
     }
             Try {
-                mkdir C:\Users\$env:USERNAME\logs\$date
+                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date
                 create_folders
             } Catch {
                 Write-Host "Unable to create log folder!" -ForegroundColor Red
                 Start-Sleep 1.5
-                return 0
+                return (0, $LOGSPATH)
             }
         } else {
             Try {
-                mkdir C:\Users\$env:USERNAME\logs
+                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
                 create_folders
             } Catch {
             Write-Host "Unable to create log folder!" -ForegroundColor Red
             Start-Sleep 1.5
-            return 0
+            return (0, $LOGSPATH)
             }
         }
 }
@@ -400,7 +406,7 @@ function recoverDeletedUsersFolders {
         }
         
         Try {
-            robocopy $path $dest /MIR /R:1 /W:1 /MT:128 /log:$LOGSPATH\$user.txt /j
+            robocopy $path $dest /MIR /R:1 /W:1 /MT:128 /log:$LOGSPATH[1]\$user.txt /j
             Try {
                 Remove-Directory -r -force -$path
 
@@ -630,7 +636,7 @@ function newSetUpSettings {
 function MainMenu {
     while ($true) {
         Clear-Host
-        if ($logs -eq 0) {
+        if ($LOGSPATH[1] -eq 0) {
             Write-Host "Logs turned off!" -ForegroundColor darkRed
         } else {
             Write-Host "Logs turned on!" -ForegroundColor darkGreen
@@ -685,5 +691,6 @@ function MainMenu {
 # Causes issues.
 #$ui.WindowTitle = "Quick Fix Script"
 
-$LOGS = create_folders
+$LOGSPATH = create_folders
+
 MainMenu
