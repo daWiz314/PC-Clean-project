@@ -129,7 +129,6 @@ function StandardCleanupWithSource {
     Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $log\DISM.txt
 }
 
-
 function sfc_log {
     sfc.exe /scannow | Tee-Object -Variable container
     #Splits them into groups
@@ -169,7 +168,15 @@ function sfc_log {
 
 function checkdisk_no_log {
     foreach($drive in $Global:bitLockerDrives) {
-        echo y | chkdsk $drive.driveLetter /f /r /x /b
+        try {
+            echo y | chkdsk $drive.driveLetter /f /r /x /b
+        }
+        catch {
+            Write-Host "Unable to run CHKDSK on drive: " $drive.driveLetter -ForegroundColor Red
+            Start-Sleep 1.5
+            continue
+        
+        }
     }
 }
 
