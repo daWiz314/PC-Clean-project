@@ -186,7 +186,14 @@ function checkdisk_log {
     Out-File $log\chkdsk.txt -InputObject "Starting CHKDSK at: $time" -Append
     foreach($drive in $Global:unlockedDrives) {
         Out-File $log\chkdsk.txt -InputObject ("Running CHKDSK on drive: " + [String]$drive.driveLetter) -Append
-        echo y | chkdsk $drive.driveLetter /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
+        try {
+            echo y | chkdsk $drive.driveLetter /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
+        }
+        catch {
+            Write-Host "Unable to run CHKDSK on drive: " $drive.driveLetter -ForegroundColor Red
+            Start-Sleep 1.5
+            continue
+        }
     }
     #echo y | chkdsk C: /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
 }
