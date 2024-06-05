@@ -12,6 +12,8 @@ Another way to run script with network access is to type the following into a po
   <h3>1.1.1</h3>
   <li>Fixed logs and created new log path (appdata\local\temp\pc_cleanup)</li>
   <li>Added patch notes viewer</li>
+  <li>Added option to remove root folder and recreate it</li>
+  <li>Added option to completely remove data from this script</li>
 </ul>
 
 <ul>

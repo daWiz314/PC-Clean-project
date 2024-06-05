@@ -72,7 +72,7 @@ function changeLog {
 
 
 function StandardCleanup {
-    if ($script:logs -eq 0) {
+    if ($Global:LOGSPATH -eq 0) {
         StandardCleanupNoLogs
     } else {
         StandardCleanupLogs
@@ -128,6 +128,9 @@ function StandardCleanupNoLogs {
 
 function StandardCleanupLogs {
     Clear-Host
+    if ($LOGSPATH = 0) {
+        StandardCleanupNoLogs
+    }
     $log = $LOGSPATH[2]
     Write-Host "Starting standard cleanup with logs in user account folder"
     Write-Host "Logs will be located in " + $LOGSPATH[2]
@@ -328,7 +331,9 @@ function ShowOptions {
     } else {
         Write-Host "1) Turn off logs"
     }
-    Write-Host "2) Back to main menu"
+    Write-Host "2) Clear this scripts data and recreate folder"
+    Write-Host "3) Clear all data and DO NOT recreate it"
+    Write-Host "q) Back to main menu"
     $option = getKeyPress
     switch ($option) {
         1 {
@@ -341,14 +346,39 @@ function ShowOptions {
             }
         }
         2 {
-            continue
+            clear_logs
+        }
+        3 {
+            full_clear_logs
+        }
+        "q" {
+            main_menu
         }
     }
 }
 
+function clear_logs {
+    Clear-Host
+    Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\temp\pc_cleanup"
+    $Global:LOGSPATH = create_folders
+    Write-Host "Logs cleared!" -ForegroundColor Green
+    Start-Sleep 1.5
+    return
+}
+
+function full_clear_logs {
+    Clear-Host
+    Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\temp\pc_cleanup"
+    Write-Host "All data cleared!" -ForegroundColor Green
+    $Global:LOGSPATH = 0
+    Start-Sleep 1.5
+    return
+
+}
+
 function create_folders {
     # New log file location
-    # C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup_\logs
+    # C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
     $LOGSPATH = ""
     if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup) {
         $date = Get-Date -Format "MM-dd-yyyy"
