@@ -65,7 +65,14 @@ function countdown {
 function changeLog {
     Clear-Host
     $log = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\change_log.txt"
-    irm $website/patch_notes.txt > $log
+    try {
+        irm $website/patch_notes.txt > $log
+    }
+    catch {
+        Write-Host "Unable to get patch notes!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return
+    }
     Get-Content -Path $log -Raw | more
     getKeyPress
 }
@@ -714,8 +721,6 @@ function changeTimeZone {
             mainMenu
         }
     }
-    # TODO:
-        # Add error catching here
     try {
         W32tm.exe /resync
     } 
