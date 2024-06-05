@@ -35,23 +35,24 @@ function display_message {
     # Parameters
     param (
         [Parameter(Mandatory=$true)][string[]]$messages,
-        [Parameter(Mandatory=$false)][int]$selection=1
+        [Parameter(Mandatory=$false)][int]$top=1,
+        [Parameter(Mandatory=$false)][int]$selection=$top+1
     )
     Clear-Host
-    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$message.Length - 1)
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$messages.Length + 1)
     foreach($message in $messages) {
         if ($selection -eq $messages.IndexOf($message)) {
-            $test = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-$message.Length - 1)
-            Write-Host $test">"$message
+            $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
+            Write-Host $spaces">"$message
         } else {
-            $test = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-$message.Length)
-            Write-Host $test$message
+            $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
+            Write-Host $spaces$message
         }
     }
-    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$nessage.Length)
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$messages.Length)
     $key = detectKeyPress
     if ($key -eq "up") {
-        if ($selection -gt 1) {
+        if ($selection -gt $top+1) {
             $selection--
         } else {
             $selection = $messages.Length - 1
@@ -60,14 +61,25 @@ function display_message {
         if ($selection -lt ($messages.Length - 1)) {
             $selection++
         } else {
-            $selection = 1
+            $selection = $top+1
         }
     } elseif ($key -eq "enter") {
         return $selection
-    } elseif ($key -eq "q") {
-        return "q"
     }
     display_message -messages $messages -selection $selection
+}
+
+function display_single_message {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$true)][string]$message
+    )
+    Clear-Host
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-1)
+    $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
+    Write-Host $spaces$message
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-1)
+
 }
 
 # Detect key press
@@ -227,7 +239,7 @@ function confirm {
         Clear-Host
         return 1
     } else {
-        confirm
+        confirm -message $message
     }
 }
 
@@ -262,18 +274,13 @@ function changeLog {
         return
     }
     Get-Content -Path $log -Raw | more
+    Write-Host "Press any key to continue..."
     getKeyPress
 }
 
-
-function StandardCleanup {
-    Clear-Host
-    Write-Host "Standard Cleanup" -ForegroundColor Green
-    Write-Host "1) Without source"
-    Write-Host "2) With source"
-    Write-Host "q) Back to main menu"
-    $choice = getKeyPress
-    switch ($choice) {
+function standard_clean_up {
+    $messages = @("Standard Cleanup", "Choose an option:", "Without source", "With source", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
             if ($Global:LOGSPATH -eq 0) {
                 StandardCleanupNoLogs
@@ -288,10 +295,10 @@ function StandardCleanup {
                 StandardCleanupWithSource
             }
         }
-        'q' {
-            MainMenu
+        3 {
+            main_menu
         }
-    }
+    
 }
 
 # Function standard cleanup with source and no logging
@@ -499,63 +506,39 @@ function DisableAdminAccount {
     return
 }
 
-
-function BootOptions {
-    Clear-Host
-    Write-Host "Boot Options:" -ForegroundColor Green
-    Write-Host "1) Boot into UEFI settings"
-    Write-Host "2) Boot into advanced startup"
-    Write-Host "3) Reboot"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+function boot_options {
+    $messages = @("Boot Options", "Choose an option:", "Boot into UEFI settings", "Boot into advanced startup", "Reboot", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            Clear-Host
             countdown -seconds 3 -message "Booting into UEFI Settings"
             shutdown /r /f /fw /t 00
         }
         2 {
-            Clear-Host
             countdown -seconds 3 -message "Booting into Advanced Startup"
             shutdown /r /f /o /t 00
         }
         3 {
-            Clear-Host
             countdown -seconds 3 -message "Rebooting"
             shutdown /r /f /t 00
         }
-        "q" {
-            MainMenu
+        4 {
+            main_menu
         }
     }
 }
 
-function ShowOptions {
-    Clear-Host
-    $logs = $Global:LOGSPATH
-    if ($logs -eq 0) {
-        Write-Host "Logs turned off!" -ForegroundColor Red
+function show_options {
+    if ($Global:LOGSPATH -eq 0) {
+        $messages = @("Options", "Logs turned off!", "Turn on logs", "Clear this scripts data and recreate folder", "Clear all data and DO NOT recreate it", "Back to main menu")
     } else {
-        Write-Host "Logs turned on!"  -ForegroundColor Green
+        $messages = @("Options", "Logs turned on!", "Turn off logs", "Clear this scripts data and recreate folder", "Clear all data and DO NOT recreate it", "Back to main menu")
     }
-    Write-Host "Options" -ForegroundColor Green
-    if ($logs -eq 0) {
-        Write-Host "1) Turn on logs"
-    } else {
-        Write-Host "1) Turn off logs"
-    }
-    Write-Host "2) Clear this scripts data and recreate folder"
-    Write-Host "3) Clear all data and DO NOT recreate it"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            if ($logs -eq 0) {
-                
-                $logs = create_folders
-
+            if ($Global:LOGSPATH -eq 0) {
+                $Global:LOGSPATH = create_folders
             } else {
-                $logs = 0
+                $Global:LOGSPATH = 0
             }
         }
         2 {
@@ -564,8 +547,8 @@ function ShowOptions {
         3 {
             full_clear_logs
         }
-        'q' {
-            MainMenu
+        4 {
+            main_menu
         }
     }
 }
@@ -639,31 +622,22 @@ function getListOfUsers {
     return $users
 }
 
-function selectUser {
-    Clear-Host
-    $users = getListOfUsers
-    Write-Host "Choose a user:"
-    for($i=0; $i -lt $users.count; $i++) {
-        Write-Host $i")" $users[$i]
+function select_user {
+    $messages = @("Select a user", "Choose a user:")
+    $messages += getListOfUsers
+    $messages += "(q) Back"
+    $result = display_message -messages $messages -selection 2
+    if ($result -eq $messages.Count-1) {
+        user_control
+    } else {
+        return $messages[$result]
     }
-    Write-Host "q) Back"
-    $choice = Read-Host "Enter a number"
-    if ($choice -eq 'q') {
-        return
-    }
-    if ([int]$choice -lt 0 -or [int]$choice -gt $users.count) {
-        Write-Host "Invalid choice!" -ForegroundColor Red
-        Start-Sleep 1.5
-        selectUser
-    }
-    Clear-Host
-    return $users[$choice]
 }
 
-function resetPassword {
+function reset_password {
     Clear-Host
-    $user = selectUser
-    $result = confirm("Resetting password for user: "+$user)
+    $user = select_user
+    $result = confirm -message ("Resetting password for user: " + $user)
     if ($result -eq 1) {
         Try {
             net user $user *
@@ -678,11 +652,12 @@ function resetPassword {
     } else {
         return
     }
+
 }
 
 function deleteUser {
     Clear-Host
-    $user = selectUser
+    $user = select_user
     $result = confirm("Deleting user: "+$user)
     if ($result -eq 1) {
         $result2 = confirm("CONFIRM THE ACTION: Deleting user: "+$user)
@@ -705,27 +680,22 @@ function deleteUser {
     }
 }
 
-function createNewUser {
-    Clear-Host
-    Write-Host "Username for user:" -ForegroundColor Green
+function create_new_user {
+    display_single_message -message "Username for user:"
     $username = Read-Host
-    Clear-Host
-    Write-Host "Type in a password for the new user:" -ForegroundColor Green
+    display_single_message -message "Type in a password for the new user:"
     $password = Read-Host -AsSecureString
-    Clear-Host
-    Write-Host "Full Name for user:" -ForegroundColor Green
+    display_single_message -message "Full Name for user:"
     $fullName = Read-Host
-    Clear-Host
-    Write-Host "Description for user:" -ForegroundColor Green
+    display_single_message -message "Description for user:"
     $description = Read-Host
-    Clear-Host
-    $result = confirm("Add to local administrators group?")
+    $result = confirm -message "Add to local administrators group?"
     if ($result -eq 1) {
         $group = 'Administrators'
     } else {
         $group = 'Users'
     }
-    Write-Host "Creating user $username..."
+    display_single_message -message "Creating user $username"
     Try {
         if ($password) {
             New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires -NoPassword
@@ -733,7 +703,7 @@ function createNewUser {
             New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires $password
         }
     } Catch {
-        Write-Host "Unable to create user!" -ForegroundColor Red
+        display_single_message -message "Unable to create user!" -ForegroundColor Red
         Start-Sleep 1.5
         return
     }
@@ -743,69 +713,49 @@ function createNewUser {
             Add-LocalGroupMember -Group "Administrators" -Member $username
         }
     } catch {
-        Write-Host "Unable to add user to Administrators group!" -ForegroundColor Red
+        display_single_message -message "Unable to add user to Administrators group!" 
         Start-Sleep 1.5
         return
     }
 
-    Write-Host "User created!" -ForegroundColor Green
+    display_single_message -message "User created!"
     Start-Sleep 1.5
     return
-
 }
 
-function userControl {
-    Clear-Host
-    Write-Host "User Control" -ForegroundColor Green
-    Write-Host "Choose an option:"
-    Write-Host "1) Create new user"
-    Write-Host "2) Reset password"
-    Write-Host "3) Delete user"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+function user_control {
+    $messages = @("User Control", "Choose an option:", "Create new user", "Reset password", "Delete user", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            createNewUser
+            create_new_user
         }
         2 {
-            resetPassword
+            reset_password
         }
         3 {
             deleteUser
         }
-        "q" {
-            mainMenu
+        4 {
+            main_menu
         }
     }
-
-    userControl
 }
 
-# Settings for new setups or for existing set ups
-# To be added onto in the future
-# 1) Will reset the windows update that sometimes bugs out with updates. It will reset the folders related and reset the service involved
-
-function newSetUpSettings {
-    Clear-Host
-    Write-Host "This is still being worked on, come back later!" -ForegroudColor Red
-    Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
-    Write-Host "Choose an option:"
-    Write-Host "1) Reset Windows Update"
-    Write-Host "2) Change Time Zone"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+function new_set_up_settings_menu {
+    $messages = @("New Setup Settings / OS Settings", "Choose an option:", "Reset Windows Update", "Change Time Zone", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
             resetWindowsUpdate
         }
         2 {
-            changeTimeZone
+            change_time_zone
         }
-        "q" {
-            mainMenu
+        3 {
+            main_menu
         }
     }
 }
+
 
 # Resets the windows update folders related to it.
 function resetWindowsUpdate {
@@ -836,19 +786,9 @@ function resetWindowsUpdate {
     return
 }
 
-# Function for changing time zone, only adding US based ones for now, will add more later.
-#TODO: Add more time zones
-function changeTimeZone {
-    Clear-Host
-    Write-Host "Change Time Zone" -ForegroundColor Green
-    Write-Host "Choose a time zone:"
-    Write-Host "1) Eastern Time"
-    Write-Host "2) Central Time"
-    Write-Host "3) Mountain Time"
-    Write-Host "4) Pacific Time"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+function change_time_zone {
+    $messages = @("Change Time Zone", "Choose a time zone:", "Eastern Time", "Central Time", "Mountain Time", "Pacific Time", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
             Set-TimeZone -Id "Eastern Standard Time"
         }
@@ -861,91 +801,35 @@ function changeTimeZone {
         4 {
             Set-TimeZone -Id "Pacific Standard Time"
         }
-        "q" {
-            mainMenu
+        5 {
+            main_menu
         }
     }
     try {
+        Start-Service -Name "W32Time"
         W32tm.exe /resync
     } 
     catch {
         try {
-            Start-Service -Name "W32Time" -ErrorAction Stop
+            Start-Service -Name "W32Time" -Force
             W32tm.exe /resync /force
         } 
-        catch [System.Exception] {
+        catch {
+            Clear-Host
             Write-Host "Unable to resync time, service unable to start" -ForegroundColor red
             Start-Sleep 3
             return
         }
     }
-    
-    getkeypress
-    return
+    main_menu
 }
 
 function main_menu {
-    $messages = @("Main Menu", "1) DISM, SFC, CHKDSK, and reboot", "2) Create Admin account, and switch to it", "3) Disable Admin account", "4) BitLocker", "5) Boot Options", "6) Options", "7) User Control", "8) New Setup Settings / OS Settings", "9) Patch Notes", "q) Exit")
-    switch(display_message -messages $messages) {
-        1 {
-            StandardCleanup
-        }
-        2 {
-            CreateAdminAccount
-        }
-        3 {
-            DisableAdminAccount
-        }
-        4 {
-            BitLocker
-        }
-        5 {
-            BootOptions
-        }
-        6 {
-            ShowOptions
-        }
-        7 {
-            userControl
-        }
-        8 {
-            newSetUpSettings
-        }
-        9 {
-            changeLog
-        }
-        9 {
-            exit
-        }
-    
-    }
-}
-
-function MainMenu {
     while ($true) {
-        Clear-Host
-        if ($Global:LOGSPATH -eq 0) {
-            Write-Host "Logs turned off!" -ForegroundColor darkRed
-        } else {
-            Write-Host "Logs turned on!" -ForegroundColor darkGreen
-        }
-        Write-Host "Welcome to the Quick Fix Script!" -ForegroundColor Blue
-        Write-Host "Main Menu "$VERSION -ForegroundColor Green
-        Write-Host "1) DISM, SFC, CHKDSK, and reboot"
-        Write-Host "2) Create Admin account, and switch to it"
-        Write-Host "3) Disable Admin account"
-        Write-Host "4) BitLocker"
-        Write-Host "5) Boot Options"
-        Write-Host "6) Options"
-        Write-Host "7) User Control"
-        Write-Host "8) New Setup Settings / OS Settings"
-        Write-Host "9) Patch Notes"
-        Write-Host "q) Exit"
-        $choice = getKeyPress
-
-        switch ($choice) {
+        $messages = @(("V" + $VERSION),"Main Menu", "DISM, SFC, CHKDSK, and reboot", "Create Admin account, and switch to it", "Disable Admin account", "BitLocker", "Boot Options", "Options", "User Control", "New Setup Settings / OS Settings", "Patch Notes", "Exit")
+        switch((display_message -messages $messages -top 2 -selection 2)-1) {
             1 {
-                StandardCleanup
+                standard_clean_up
             }
             2 {
                 CreateAdminAccount
@@ -957,28 +841,26 @@ function MainMenu {
                 BitLocker
             }
             5 {
-                BootOptions
+                boot_options
             }
             6 {
-                ShowOptions
+                show_options
             }
             7 {
-                userControl
+                user_control
             }
             8 {
-                newSetUpSettings
+                new_set_up_settings_menu
             }
             9 {
                 changeLog
             }
-            'q'{
-                Clear-Host
+            10 {
                 exit
             }
         }
     }
 }
-
 
 # Causes issues.
 #$ui.WindowTitle = "Quick Fix Script"
