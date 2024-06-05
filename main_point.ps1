@@ -175,8 +175,6 @@ function checkdisk_no_log {
 
 function checkdisk_log {
     $log = $Global:LOGSPATH[2]
-    echo $log
-    getKeyPress
     $time = Get-Date -Format "HH:mm:ss"
     Out-File $log\chkdsk.txt -InputObject "Starting CHKDSK at: $time" -Append
     foreach($drive in $Global:unlockedDrives) {
