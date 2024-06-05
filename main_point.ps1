@@ -116,12 +116,30 @@ function sfc_log {
     }
 }
 
+function checkdisk_no_log {
+    foreach($drive in $Global:unlockedDrives) {
+        echo y | chkdsk $drive.driveLetter /f /r /x /b
+    }
+}
+
+function checkdisk_log {
+    $log = $Global:LOGSPATH[2]
+    echo $log
+    getKeyPress
+    $time = Get-Date -Format "HH:mm:ss"
+    Out-File $log\chkdsk.txt -InputObject "Starting CHKDSK at: $time" -Append
+    foreach($drive in $Global:unlockedDrives) {
+        Out-File $log\chkdsk.txt -InputObject ("Running CHKDSK on drive: " + [String]$drive.driveLetter) -Append
+        echo y | chkdsk $drive.driveLetter /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
+    }
+    #echo y | chkdsk C: /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
+}
 function StandardCleanupNoLogs {
     Clear-Host
     Write-Host "Starting standard cleanup with no logs..."
     Dism.exe /online /cleanup-image /restorehealth
     sfc.exe /scannow
-    echo y | chkdsk C: /f /r /x /b
+    checkdisk_no_log
     countdown -seconds 10 -message "SHUTTING DOWN"
     shutdown /r /t 0
 }
@@ -131,24 +149,26 @@ function StandardCleanupLogs {
     if ($LOGSPATH = 0) {
         StandardCleanupNoLogs
     }
-    $log = $LOGSPATH[2]
+    $log = $Global:LOGSPATH[2]
     Write-Host "Starting standard cleanup with logs in user account folder"
     Write-Host "Logs will be located in " $log
-    Write-Host "Running DISM" -ForegroundColor Green
-    $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: $time"
-    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
-    Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $log\DISM.txt
-    Write-Host "Running SFC" -ForegroundColor Green
-    $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: $time"
-    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    sfc_log
-    echo y | chkdsk C: /f /r /x /b 
+    # Write-Host "Running DISM" -ForegroundColor Green
+    # $time = Get-Date -Format "HH:mm:ss"
+    # Write-Host "Current Time: $time"
+    # Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+    # Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
+    # Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $log\DISM.txt
+    # Write-Host "Running SFC" -ForegroundColor Green
+    # $time = Get-Date -Format "HH:mm:ss"
+    # Write-Host "Current Time: $time"
+    # Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+    # sfc_log
+    # echo y | chkdsk C: /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
+    checkdisk_log
+    getkeypress
     countdown -seconds 10 -message "SHUTTING DOWN"
-    shutdown /r /t 0
+    shutdown /f /r /t 0
     getkeyPress
 }
 
@@ -181,7 +201,7 @@ function DisableAdminAccount {
     return
 }
 
-function bitlocker {
+function bitlocker_helper {
     $container = fsutil.exe fsinfo drives
     $container = $container -split ":"
     $container = ($container | Where-Object {$_ -match "\s\w"}) -replace "\\", ""
@@ -204,30 +224,34 @@ function bitlocker {
         $bitlockerDrives += [bitlockerDrive]::new($drive+":", $lock_status, $encryption_percentage)
     }
     
-    $lockedDrives = @()
-    $unlockedDrives = @()
+    $Global:lockedDrives = @()
+    $Global:unlockedDrives = @()
 
     foreach ($drive in $bitlockerDrives) {
         if ($drive.lockStatus -eq $true) {
-            $lockedDrives += $drive
+            $Global:lockedDrives += $drive
         } else {
-            $unlockedDrives += $drive
+            $Global:unlockedDrives += $drive
         }
     }
-
+}
+function bitlocker {
+    Clear-Host
+    bitlocker_helper
+    Write-Host "BitLocker" -ForegroundColor Green
     Write-Host "Locked Drives: " -NoNewline
-    foreach ($drive in $lockedDrives) {
+    foreach ($drive in $Global:lockedDrives) {
         Write-Host $drive.driveLetter -NoNewline
         Write-Host " " -NoNewline
     }
     Write-Host ""
     Write-Host "Unlocked Drives: " -NoNewline
-    foreach ($drive in $unlockedDrives) {
+    foreach ($drive in $Global:unlockedDrives) {
         Write-Host $drive.driveLetter -NoNewline
         Write-Host " " -NoNewline
     }
     Write-Host ""
-    if ($lockedDrives.count -eq 0) {
+    if ($Global:lockedDrives.count -eq 0) {
         Write-Host "No locked drives!" -ForegroundColor Green
         Start-Sleep 1.5
         return
@@ -235,7 +259,7 @@ function bitlocker {
     Write-Host "Unlock any drives? (y/n)"
     $choice = getKeyPress
     if ($choice -eq 'y') {
-        unlockDrive($lockedDrives)
+        unlockDrive($Global:lockedDrives)
     } else {
         return
     }
@@ -760,5 +784,5 @@ function MainMenu {
 #$ui.WindowTitle = "Quick Fix Script"
 
 $LOGSPATH = create_folders
-
+bitlocker_helper
 MainMenu
