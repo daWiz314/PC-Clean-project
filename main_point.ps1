@@ -117,25 +117,12 @@ function StandardCleanupWithSource {
     $source = ""
     # run this to update drives
     bitlocker_helper
-    foreach ($drive in $Global:unlockedDrives) {
+    foreach ($drive in $Global:bitlockerDrives) {
         if ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.wim")) {
             $source = $drive.driveLetter + "\sources\install.wim"
-            echo "Source found: " $source
             break
         } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
             $source = $drive.driveLetter + "\sources\install.esd"
-            echo "Source found: " $source
-            break
-        }
-    }
-    foreach ($drive in $Global:lockedDrives) {
-        if ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.wim")) {
-            $source = $drive.driveLetter + "\sources\install.wim"
-            echo "Source found: " $source
-            break
-        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
-            $source = $drive.driveLetter + "\sources\install.esd"
-            echo "Source found: " $source
             break
         }
     }
@@ -181,7 +168,7 @@ function sfc_log {
 }
 
 function checkdisk_no_log {
-    foreach($drive in $Global:unlockedDrives) {
+    foreach($drive in $Global:bitLockerDrives) {
         echo y | chkdsk $drive.driveLetter /f /r /x /b
     }
 }
@@ -272,7 +259,7 @@ function bitlocker_helper {
     $container = ($container | Where-Object {$_ -match "\s\w"}) -replace "\\", ""
     Clear-Host
 
-    $bitlockerDrives = @()
+    $Global:bitlockerDrives = @()
     
     foreach ($drive in $container.trim()) {
         $container2 = manage-bde.exe $drive":" -status
