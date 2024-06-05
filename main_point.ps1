@@ -152,17 +152,17 @@ function StandardCleanupLogs {
     $log = $Global:LOGSPATH[2]
     Write-Host "Starting standard cleanup with logs in user account folder"
     Write-Host "Logs will be located in " $log
-    # Write-Host "Running DISM" -ForegroundColor Green
-    # $time = Get-Date -Format "HH:mm:ss"
-    # Write-Host "Current Time: $time"
-    # Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    # Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
-    # Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $log\DISM.txt
-    # Write-Host "Running SFC" -ForegroundColor Green
-    # $time = Get-Date -Format "HH:mm:ss"
-    # Write-Host "Current Time: $time"
-    # Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    # sfc_log
+    Write-Host "Running DISM" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: $time"
+    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+    Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
+    Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $log\DISM.txt
+    Write-Host "Running SFC" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: $time"
+    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+    sfc_log
     # echo y | chkdsk C: /f /r /x /b 
     Write-Host "Running CHKDSK" -ForegroundColor Green
     checkdisk_log
