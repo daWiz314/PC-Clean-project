@@ -9,6 +9,12 @@ Another way to run script with network access is to type the following into a po
 <code>irm https://dawiz314.github.io/code | iex </code>
 
 <ul>
+  <h3>1.1.2</h3>
+  <li>Updated standard clean up to include dism with source</li>
+  <li>Fixed bug that wouldn't allow dism/chkdsk to be run on all drives</li>
+</ul>
+
+<ul>
   <h3>1.1.1</h3>
   <li>Fixed logs and created new log path (appdata\local\temp\pc_cleanup)</li>
   <li>Added patch notes viewer</li>

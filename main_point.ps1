@@ -1,7 +1,7 @@
 
 #Test change to verify git is working
 
-$VERSION = "1.1.1"
+$VERSION = "1.1.2"
 $LOGSPATH = ""
 # Website for the script
 $website = "dawiz314.github.io"
