@@ -203,7 +203,6 @@ function StandardCleanup {
 
 # Function standard cleanup with source and no logging
 function StandardCleanupWithSourceNoLogs {
-    $log = $Global:LOGSPATH[2]
     Write-Host "Starting standard cleanup without logs in user account folder"
     Write-Host "Running DISM" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
