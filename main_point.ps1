@@ -524,56 +524,6 @@ function create_folders {
     }
 }
 
-function recoverDeletedUsersFolders {
-    Clear-Host "Still working on this!"
-    Start-Sleep 1.5
-    return
-    [Parameter(Mandatory=$true)][string]$user
-    Start-Sleep 2
-    $choice = confirm("Copy deleted user: " +$user+ " folders?")
-    if ($choice -eq 1) {
-        Clear-Host
-        Write-Host "Copying deleted user: "$user  " folders"
-        $path = "C:\Users\$user"
-        $dest = "C:\Users\$env:USERNAME\$user"
-        Try {
-            $i = 0
-            while ($true) {
-                $i++
-                if (Test-Path -Path $dest) {
-                    $dest = "C:\Users\$env:USERNAME\$user$i"
-                    continue
-                } else {
-                    break
-                    Write-Host "In Loop"
-                    
-                }
-            }
-            mkdir $dest
-        } catch {
-            Write-Host "Unable to create folder to move data to!" -ForegroundColor Red
-            Start-Sleep 1.5
-            return
-        }
-        
-        Try {
-            robocopy $path $dest /MIR /R:1 /W:1 /MT:128 /log:$LOGSPATH[1]\$user.txt /j
-            Try {
-                Remove-Directory -r -force -$path
-
-            } catch {
-                Write-Host "Unable to delete " $user " folder!" -ForegroundColor Red
-                Start-Sleep 1.5
-                return
-            }
-        } Catch {
-            Write-Host "Unable to copy users folders!" -ForegroundColor Red
-            Start-Sleep 1.5
-            return
-        }
-    }
-}
-
 function getListOfUsers {
     [System.Collections.ArrayList]$users = net user | Select-String -Pattern "^[A-Za-z0-9]" | Select-Object -ExpandProperty Line | ForEach-Object { $_.Trim() }
     #remove the spaces from in-between the users
@@ -644,7 +594,6 @@ function deleteUser {
             Write-Host "User deleted!" -ForegroundColor Green
             Start-Sleep .5
             Clear-Host
-            recoverDeletedUsersFolders($user)
         } else {
             return
         }
