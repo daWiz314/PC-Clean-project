@@ -716,7 +716,23 @@ function changeTimeZone {
     }
     # TODO:
         # Add error catching here
-    W32tm.exe /resync /force
+    try {
+        W32tm.exe /resync
+    } 
+    catch {
+        try {
+            Start-Service -Name "W32Time" -ErrorAction Stop
+            W32tm.exe /resync /force
+        } 
+        catch [System.Exception] {
+            Write-Host "Unable to resync time, service unable to start" -ForegroundColor red
+            Start-Sleep 3
+            return
+        }
+    }
+
+    
+    getkeypress
     return
 }
 
