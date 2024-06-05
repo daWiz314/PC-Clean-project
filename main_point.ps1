@@ -39,7 +39,7 @@ function bitlocker_helper {
         $encryption_percentage = $container2 | Where-Object {$_ -match "Percentage Encrypted"}
         $encryption_percentage = $encryption_percentage -replace ".*:\s", ""
     
-        $bitlockerDrives += [bitlockerDrive]::new($drive+":", $lock_status, $encryption_percentage)
+        $bitlockerDrives += [bitlockerDrive]::new(($drive + ":"),$lock_status, [string]$encryption_percentage)
     }
     
     $Global:lockedDrives = @()
