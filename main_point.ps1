@@ -79,12 +79,69 @@ function changeLog {
 
 
 function StandardCleanup {
-    if ($Global:LOGSPATH -eq 0) {
-        StandardCleanupNoLogs
-    } else {
-        StandardCleanupLogs
+    Clear-Host
+    Write-Host "Standard Cleanup" -ForegroundColor Green
+    Write-Host "1) Without source"
+    Write-Host "2) With source"
+    Write-Host "q) Back to main menu"
+    $choice = getKeyPress
+    switch ($choice) {
+        1 {
+            if ($Global:LOGSPATH -eq 0) {
+                StandardCleanupNoLogs
+            } else {
+                StandardCleanupLogs
+            }
+        }
+        2 {
+            StandardCleanupWithSource
+        }
+        'q' {
+            MainMenu
+        }
     }
 }
+
+# Function standard cleanup with source
+function StandardCleanupWithSource {
+    $log = $Global:LOGSPATH[2]
+    Write-Host "Starting standard cleanup with logs in user account folder"
+    Write-Host "Logs will be located in " $log
+    Write-Host "Running DISM" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: $time"
+    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+    Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
+    
+    # Get the source
+    $source = ""
+    # run this to update drives
+    bitlocker_helper
+    foreach ($drive in $Global:unlockedDrives) {
+        if ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.wim")) {
+            $source = $drive.driveLetter + "\sources\install.wim"
+            echo "Source found: " $source
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
+            $source = $drive.driveLetter + "\sources\install.esd"
+            echo "Source found: " $source
+            break
+        }
+    }
+    foreach ($drive in $Global:lockedDrives) {
+        if ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.wim")) {
+            $source = $drive.driveLetter + "\sources\install.wim"
+            echo "Source found: " $source
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
+            $source = $drive.driveLetter + "\sources\install.esd"
+            echo "Source found: " $source
+            break
+        }
+    }
+    Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $log\DISM.txt
+}
+
 
 function sfc_log {
     sfc.exe /scannow | Tee-Object -Variable container
@@ -208,6 +265,7 @@ function DisableAdminAccount {
     return
 }
 
+# Need to fix this so it can read all drives, and stop erroring out
 function bitlocker_helper {
     $container = fsutil.exe fsinfo drives
     $container = $container -split ":"
@@ -409,24 +467,24 @@ function create_folders {
                 return (0, $LOGSPATH)
         }
     }
-            Try {
-                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date
-                create_folders
-            } Catch {
-                Write-Host "Unable to create log folder!" -ForegroundColor Red
-                Start-Sleep 1.5
-                return (0, $LOGSPATH)
-            }
-        } else {
-            Try {
-                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
-                create_folders
-            } Catch {
+        Try {
+            mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date
+            create_folders
+        } Catch {
             Write-Host "Unable to create log folder!" -ForegroundColor Red
             Start-Sleep 1.5
             return (0, $LOGSPATH)
-            }
         }
+    } else {
+        Try {
+            mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
+            create_folders
+        } Catch {
+        Write-Host "Unable to create log folder!" -ForegroundColor Red
+        Start-Sleep 1.5
+        return (0, $LOGSPATH)
+        }
+    }
 }
 
 function recoverDeletedUsersFolders {
