@@ -146,7 +146,7 @@ function bitlocker_helper {
         $encryption_percentage = $container2 | Where-Object {$_ -match "Percentage Encrypted"}
         $encryption_percentage = $encryption_percentage -replace ".*:\s", ""
     
-        $bitlockerDrives += ([bitlockerDrive]::new(($drive + ":"),$lock_status, [string]$encryption_percentage))
+        $Global:bitlockerDrives += ([bitlockerDrive]::new(($drive + ":"),$lock_status, [string]$encryption_percentage))
     }
     
     $Global:lockedDrives = @()
@@ -298,7 +298,7 @@ function standard_clean_up {
         3 {
             main_menu
         }
-    
+    }
 }
 
 # Function standard cleanup with source and no logging
@@ -325,7 +325,7 @@ function StandardCleanupWithSourceNoLogs {
     if ($source -eq "") {
         Write-Host "Unable to find source!" -ForegroundColor Red
         Start-Sleep 1.5
-        standardCleanup
+        standard_clean_up
     }
     Dism.exe /online /cleanup-image /restorehealth /source:$source
     sfc.exe /scannow
@@ -362,7 +362,7 @@ function StandardCleanupWithSource {
     if ($source -eq "") {
         Write-Host "Unable to find source!" -ForegroundColor Red
         Start-Sleep 1.5
-        standardCleanup
+        standard_clean_up
     }
     Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $log\DISM.txt
     sfc_log
