@@ -12,6 +12,7 @@ Another way to run script with network access is to type the following into a po
   <h3>2.0.0</h3>
   <li>Still working on it, but here is a taste of the V2.0 update</li>
   <li>New UI</li>
+  <li>Added ability to toggle Windows 11 context menu</li>
 </ul>
 
 <ul>
