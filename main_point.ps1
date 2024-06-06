@@ -742,8 +742,34 @@ function user_control {
     }
 }
 
+function toggle_new_context_menu {
+    $path = "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
+    if(Test-Path $path) {
+        try {
+            reg delete "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f
+            display_single_message -message "Turned it on!"
+            Start-Sleep 1.5
+        } catch {
+            Write-Host "Unable to turn off new context menu" -ForegroundColor Red
+            Start-Sleep 1.5
+        }
+    } else {
+        try {
+            reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve
+            display_single_message -message "Turned it off!"
+            Start-Sleep 1.5
+        } catch {
+            Write-Host "Unable to turn off new context menu!" -ForegroundColor Red
+            Start-Sleep 1.5
+            return
+        }
+    }
+    display_single_message -message "Please restart your computer!"
+    Start-Sleep 1.5
+}
+
 function new_set_up_settings_menu {
-    $messages = @("New Setup Settings / OS Settings", "Choose an option:", "Reset Windows Update", "Change Time Zone", "Back to main menu")
+    $messages = @("New Setup Settings / OS Settings", "Choose an option:", "Reset Windows Update", "Change Time Zone", "Toggle new context menu","Back to main menu")
     switch((display_message -messages $messages -selection 2)-1) {
         1 {
             resetWindowsUpdate
@@ -752,6 +778,9 @@ function new_set_up_settings_menu {
             change_time_zone
         }
         3 {
+            toggle_new_context_menu
+        }
+        4 {
             main_menu
         }
     }
