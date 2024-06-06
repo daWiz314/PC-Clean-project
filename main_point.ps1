@@ -221,7 +221,8 @@ function unlockDrive {
 }
 
 function getKeyPress {
-    return $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    return $key.Character
 }
 
 function confirm {
