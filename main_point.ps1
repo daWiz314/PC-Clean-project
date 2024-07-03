@@ -321,6 +321,9 @@ function StandardCleanupWithSourceNoLogs {
         } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
             $source = $drive.driveLetter + "\sources\install.esd"
             break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.swm")) {
+            $source = $drive.driveLetter + "\sources\install.swm"
+            break
         }
     }
     if ($source -eq "") {
@@ -357,6 +360,9 @@ function StandardCleanupWithSource {
             break
         } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
             $source = $drive.driveLetter + "\sources\install.esd"
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.swm")) {
+            $source = $drive.driveLetter + "\sources\install.swm"
             break
         }
     }
