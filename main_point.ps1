@@ -43,7 +43,8 @@ function display_message {
     foreach($message in $messages) {
         if ($selection -eq $messages.IndexOf($message)) {
             $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
-            Write-Host $spaces">"$message
+            Write-Host $spaces -NoNewLine
+            Write-Host $message -BackgroundColor White -ForegroundColor Black
         } else {
             $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
             Write-Host $spaces$message
