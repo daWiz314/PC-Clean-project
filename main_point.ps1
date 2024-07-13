@@ -43,7 +43,8 @@ function display_message {
     foreach($message in $messages) {
         if ($selection -eq $messages.IndexOf($message)) {
             $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
-            Write-Host $spaces">"$message
+            Write-Host $spaces -NoNewLine
+            Write-Host $message -BackgroundColor White -ForegroundColor Black
         } else {
             $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
             Write-Host $spaces$message
@@ -282,7 +283,9 @@ function changeLog {
 function fix_drives {
     Clear-Host
     display_single_message -message "Fixing drives..."
-    checkdisk_no_log -runOnCDrive $false
+    checkdisk_no_log -runOnBootDrive $false
+    display_single_message -message "Done!"
+    Start-Sleep 1.5
 
 }
 
@@ -441,12 +444,12 @@ function sfc_log {
 
 function checkdisk_no_log {
     Param (
-        [Parameter(Mandatory=$false)][bool]$runOnCDrive
+        [Parameter(Mandatory=$false)][bool]$runOnBootDrive
     )
     foreach($drive in $Global:bitLockerDrives) {
         try {
             if ($drive.driveLetter = "C:") {
-                if ($runOnCDrive -eq $false) {
+                if ($runOnBootDrive -eq $false) {
                     continue
                 }
             }
