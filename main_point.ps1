@@ -899,28 +899,28 @@ function change_time_zone {
 
 function main_menu {
     while ($true) {
-        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "BitLocker", "Boot Options", "Options", "User Control", "New Setup Settings / OS Settings", "Patch Notes", "Exit")
+        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "User Control", "BitLocker", "Boot Options", "New Setup Settings / OS Settings", "Patch Notes", "Options", "Exit")
         switch((display_message -messages $messages -top 2 -selection 2)-1) {
             1 {
                 repair_menu
             }
             2 {
-                BitLocker
-            }
-            3 {
-                boot_options
-            }
-            4 {
-                show_options
-            }
-            5 {
                 user_control
             }
-            6 {
+            3 {
+                BitLocker
+            }
+            4 {
+                boot_options
+            }
+            5 {
                 new_set_up_settings_menu
             }
-            7 {
+            6 {
                 changeLog
+            }
+            7 {
+                show_options
             }
             8 {
                 exit
