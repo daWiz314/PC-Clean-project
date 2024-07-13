@@ -283,7 +283,9 @@ function changeLog {
 function fix_drives {
     Clear-Host
     display_single_message -message "Fixing drives..."
-    checkdisk_no_log -runOnCDrive $false
+    checkdisk_no_log -runOnBootDrive $false
+    display_single_message -message "Done!"
+    Start-Sleep 1.5
 
 }
 
@@ -442,12 +444,12 @@ function sfc_log {
 
 function checkdisk_no_log {
     Param (
-        [Parameter(Mandatory=$false)][bool]$runOnCDrive
+        [Parameter(Mandatory=$false)][bool]$runOnBootDrive
     )
     foreach($drive in $Global:bitLockerDrives) {
         try {
             if ($drive.driveLetter = "C:") {
-                if ($runOnCDrive -eq $false) {
+                if ($runOnBootDrive -eq $false) {
                     continue
                 }
             }
