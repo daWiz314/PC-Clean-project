@@ -287,13 +287,13 @@ function fix_drives {
 }
 
 function repair_menu {
-    $messages = @("Repair Menu", "Choose an option:", "Fix drives", "DISM/SFC/CHKDSK", "Back to main menu")
+    $messages = @("Repair Menu", "Choose an option:", "DISM/SFC/CHKDSK", "Fix Drives", "Back to main menu")
     switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            fix_drives
+            standard_clean_up
         }
         2 {
-            standard_clean_up
+            fix_drives
         }
         3 {
             main_menu
