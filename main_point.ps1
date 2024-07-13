@@ -279,6 +279,29 @@ function changeLog {
     getKeyPress
 }
 
+function fix_drives {
+    Clear-Host
+    display_single_message -message "Fixing drives..."
+    checkdisk_no_log -runOnCDrive $false
+
+}
+
+function repair_menu {
+    $messages = @("Repair Menu", "Choose an option:", "Fix drives", "DISM/SFC/CHKDSK", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
+        1 {
+            fix_drives
+        }
+        2 {
+            standard_clean_up
+        }
+        3 {
+            main_menu
+        }
+    }
+
+}
+
 function standard_clean_up {
     $messages = @("Standard Cleanup", "Choose an option:", "Without source", "With source", "Back to main menu")
     switch((display_message -messages $messages -selection 2)-1) {
@@ -417,8 +440,16 @@ function sfc_log {
 }
 
 function checkdisk_no_log {
+    Param (
+        [Parameter(Mandatory=$false)][bool]$runOnCDrive
+    )
     foreach($drive in $Global:bitLockerDrives) {
         try {
+            if ($drive.driveLetter = "C:") {
+                if ($runOnCDrive -eq $false) {
+                    continue
+                }
+            }
             echo y | chkdsk $drive.driveLetter /f /r /x /b
         }
         catch {
@@ -862,10 +893,10 @@ function change_time_zone {
 
 function main_menu {
     while ($true) {
-        $messages = @(("V" + $VERSION),"Main Menu", "DISM, SFC, CHKDSK, and reboot", "Create Admin account, and switch to it", "Disable Admin account", "BitLocker", "Boot Options", "Options", "User Control", "New Setup Settings / OS Settings", "Patch Notes", "Exit")
+        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "Create Admin account, and switch to it", "Disable Admin account", "BitLocker", "Boot Options", "Options", "User Control", "New Setup Settings / OS Settings", "Patch Notes", "Exit")
         switch((display_message -messages $messages -top 2 -selection 2)-1) {
             1 {
-                standard_clean_up
+                repair_menu
             }
             2 {
                 CreateAdminAccount
@@ -903,4 +934,5 @@ function main_menu {
 
 $Global:LOGSPATH = create_folders
 bitlocker_helper
+
 main_menu
