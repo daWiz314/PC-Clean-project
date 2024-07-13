@@ -762,7 +762,7 @@ function create_new_user {
 }
 
 function user_control {
-    $messages = @("User Control", "Choose an option:", "Create new user", "Reset password", "Delete user", "Back to main menu")
+    $messages = @("User Control", "Choose an option:", "Create new user", "Reset password", "Delete user", "Create Admin Account", "Disable Admin Account", "Back to main menu")
     switch((display_message -messages $messages -selection 2)-1) {
         1 {
             create_new_user
@@ -774,6 +774,12 @@ function user_control {
             deleteUser
         }
         4 {
+            CreateAdminAccount
+        }
+        5 {
+            DisableAdminAccount
+        }
+        6 {
             main_menu
         }
     }
@@ -893,36 +899,30 @@ function change_time_zone {
 
 function main_menu {
     while ($true) {
-        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "Create Admin account, and switch to it", "Disable Admin account", "BitLocker", "Boot Options", "Options", "User Control", "New Setup Settings / OS Settings", "Patch Notes", "Exit")
+        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "BitLocker", "Boot Options", "Options", "User Control", "New Setup Settings / OS Settings", "Patch Notes", "Exit")
         switch((display_message -messages $messages -top 2 -selection 2)-1) {
             1 {
                 repair_menu
             }
             2 {
-                CreateAdminAccount
-            }
-            3 {
-                DisableAdminAccount
-            }
-            4 {
                 BitLocker
             }
-            5 {
+            3 {
                 boot_options
             }
-            6 {
+            4 {
                 show_options
             }
-            7 {
+            5 {
                 user_control
             }
-            8 {
+            6 {
                 new_set_up_settings_menu
             }
-            9 {
+            7 {
                 changeLog
             }
-            10 {
+            8 {
                 exit
             }
         }
