@@ -292,6 +292,8 @@ function fix_drives {
         display_single_message -message ("Ran on drives: " + $drives_run_on)
         Start-Sleep 1.5
     }
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 
 }
@@ -703,14 +705,15 @@ function reset_password {
         } Catch {
             Write-Host "Unable to reset password!" -ForegroundColor Red
             Start-Sleep 1.5
-            return
         }
         Write-Host "Password reset!" -ForegroundColor Green
         Start-Sleep 1.5
-        return
     } else {
         return
     }
+    Write-Host "Press any key to continue..."
+    getKeyPress
+    return
 
 }
 
@@ -764,6 +767,8 @@ function create_new_user {
     } Catch {
         display_single_message -message "Unable to create user!" -ForegroundColor Red
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
         return
     }
 
@@ -774,12 +779,15 @@ function create_new_user {
     } catch {
         display_single_message -message "Unable to add user to Administrators group!" 
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+    getKeyPress
         return
     }
 
     display_single_message -message "User created!"
     Start-Sleep 1.5
-    return
+    Write-Host "Press any key to continue..."
+    getKeyPress
 }
 
 function user_control {
@@ -816,6 +824,9 @@ function toggle_new_context_menu {
         } catch {
             Write-Host "Unable to turn off new context menu" -ForegroundColor Red
             Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            return
         }
     } else {
         try {
@@ -825,11 +836,16 @@ function toggle_new_context_menu {
         } catch {
             Write-Host "Unable to turn off new context menu!" -ForegroundColor Red
             Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
             return
         }
     }
     display_single_message -message "Please restart your computer!"
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
+    return
 }
 
 function new_set_up_settings_menu {
@@ -877,6 +893,8 @@ function resetWindowsUpdate {
     Clear-Host
     Write-Host "Windows Update reset!" -ForegroundColor Green
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 }
 
@@ -911,10 +929,13 @@ function change_time_zone {
         catch {
             Clear-Host
             Write-Host "Unable to resync time, service unable to start" -ForegroundColor red
-            Start-Sleep 3
+            Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
             return
         }
     }
+    Display_single_message -message "Time resynced!"
     main_menu
 }
 
