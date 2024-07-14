@@ -283,9 +283,15 @@ function changeLog {
 function fix_drives {
     Clear-Host
     display_single_message -message "Fixing drives..."
-    checkdisk_no_log -runOnBootDrive $false
-    display_single_message -message "Done!"
-    Start-Sleep 1.5
+    $drives_run_on = checkdisk_no_log -runOnBootDrive $false
+    if ($drives_run_on -eq $null) {
+        display_single_message -message "No drives to fix!"
+        Start-Sleep 1.5
+    } else {
+        display_single_message -message ("Ran on drives: " + $drives_run_on)
+        Start-Sleep 1.5
+    }
+    return
 
 }
 
@@ -446,14 +452,21 @@ function checkdisk_no_log {
     Param (
         [Parameter(Mandatory=$false)][bool]$runOnBootDrive
     )
+    $drives_run_on = @()
     foreach($drive in $Global:bitLockerDrives) {
         try {
-            if ($drive.driveLetter = "C:") {
+            if ($drive.driveLetter -eq "C:") {
                 if ($runOnBootDrive -eq $false) {
                     continue
                 }
             }
-            echo y | chkdsk $drive.driveLetter /f /r /x /b
+            Write-Host "On Drive " $drive.driveLetter
+            Start-Sleep 1
+            $test = (echo y | chkdsk $drive.driveLetter /f /r /x /b)
+            if ($test -contains "Windows supports re-evaluating bad clusters on NTFS volumes only.") {
+                $no_cap = chkdsk $drive.driveLetter
+            }
+            $drives_run_on += $drive.driveLetter
         }
         catch {
             Write-Host "Unable to run CHKDSK on drive: " $drive.driveLetter -ForegroundColor Red
@@ -462,6 +475,7 @@ function checkdisk_no_log {
         
         }
     }
+    return $drives_run_on
 }
 
 function checkdisk_log {
