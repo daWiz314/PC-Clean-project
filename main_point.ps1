@@ -44,7 +44,7 @@ function display_message {
         if ($selection -eq $messages.IndexOf($message)) {
             $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
             Write-Host $spaces -NoNewLine
-            Write-Host $message -BackgroundColor White -ForegroundColor Black
+            Write-Host $message.Trim() -BackgroundColor White -ForegroundColor Black
         } else {
             $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
             Write-Host $spaces$message
@@ -204,14 +204,15 @@ function unlockDrive {
         Write-Host "q) Main Menu"
         $choice = Read-Host ">"
         if ($choice -eq 'q') {
-            MainMenu
+            main_menu
         } 
         if ([int]$choice -lt $bitlockerDrives.count-1) {
             Write-Host "Attempting to unlock drive: " $bitlockerDrives[$choice].driveLetter
             manage-bde.exe $bitlockerDrives[[int]$choice].driveLetter"-off"
+            manage-bde.exe $bitlockerDrives[[int]$choice].driveLetter"-unlock"
             Write-Host "Press any key to continue..."
             getKeyPress
-            MainMenu
+            unlockDrive
         } else {
             Write-Host "Invalid choice!" -ForegroundColor Red
             Write-Host "Please try again!" -ForegroundColor Red
