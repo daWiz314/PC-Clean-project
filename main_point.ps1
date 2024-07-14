@@ -477,6 +477,8 @@ function checkdisk_no_log {
         catch {
             Write-Host "Unable to run CHKDSK on drive: " $drive.driveLetter -ForegroundColor Red
             Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
             continue
         
         }
@@ -546,9 +548,13 @@ function CreateAdminAccount {
     } Catch {
         Write-Host "Unable to activate admin account!" -ForegroundColor Red
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
         return
     }
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 }
 
@@ -560,10 +566,14 @@ function DisableAdminAccount {
     } Catch {
         Write-Host "Unable to disable admin account!" -ForegroundColor Red
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
         return
     }
     Write-Host "Admin account disabled!" -ForegroundColor Green
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 }
 
@@ -620,6 +630,8 @@ function clear_logs {
     $Global:LOGSPATH = create_folders
     Write-Host "Logs cleared!" -ForegroundColor Green
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 }
 
@@ -629,6 +641,8 @@ function full_clear_logs {
     Write-Host "All data cleared!" -ForegroundColor Green
     $Global:LOGSPATH = 0
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 
 }
