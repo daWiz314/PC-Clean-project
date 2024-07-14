@@ -373,6 +373,9 @@ function StandardCleanupWithSourceNoLogs {
 
 # Function standard cleanup with source
 function StandardCleanupWithSource {
+    if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1) {
+        StandardCleanupNoLogs
+    }
     $log = $Global:LOGSPATH[2]
     Write-Host "Starting standard cleanup with logs in user account folder"
     Write-Host "Logs will be located in " $log
@@ -507,7 +510,7 @@ function StandardCleanupNoLogs {
 
 function StandardCleanupLogs {
     Clear-Host
-    if ($LOGSPATH = 0) {
+    if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1) {
         StandardCleanupNoLogs
     }
     $log = $Global:LOGSPATH[2]
