@@ -3,6 +3,7 @@
 
 $VERSION = "1.1.2"
 $LOGSPATH = ""
+$LASTRUN_PATH = ""
 # Website for the script
 $website = "dawiz314.github.io"
 
@@ -339,12 +340,7 @@ function standard_clean_up {
 
 # Function standard cleanup with source and no logging
 function StandardCleanupWithSourceNoLogs {
-    Write-Host "Starting standard cleanup without logs in user account folder"
-    Write-Host "Running DISM" -ForegroundColor Green
-    $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: $time"
-    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    
+    Write-Host "Starting standard cleanup without logs"
     # Get the source
     $source = ""
     # run this to update drives
@@ -366,7 +362,7 @@ function StandardCleanupWithSourceNoLogs {
         Start-Sleep 1.5
         standard_clean_up
     }
-    Dism.exe /online /cleanup-image /restorehealth /source:$source
+    run_dism -logs $false, -source $source
     sfc.exe /scannow
     checkdisk_no_log
     countdown -seconds 10 -message "SHUTTING DOWN"
@@ -380,13 +376,8 @@ function StandardCleanupWithSource {
         StandardCleanupNoLogs
     }
     $log = $Global:LOGSPATH[2]
-    Write-Host "Starting standard cleanup with logs in user account folder"
+    Write-Host "Starting standard cleanup"
     Write-Host "Logs will be located in " $log
-    Write-Host "Running DISM" -ForegroundColor Green
-    $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: $time"
-    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
     
     # Get the source
     $source = ""
@@ -409,7 +400,7 @@ function StandardCleanupWithSource {
         Start-Sleep 1.5
         standard_clean_up
     }
-    Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $log\DISM.txt
+    run_dism -logs $true, -source $source
     sfc_log
     checkdisk_log
     countdown -seconds 10 -message "SHUTTING DOWN"
@@ -418,6 +409,11 @@ function StandardCleanupWithSource {
 }
 
 function sfc_log {
+    Write-Host "Running SFC" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: $time"
+    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+
     sfc.exe /scannow | Tee-Object -Variable container
     #Splits them into groups
     $container = $container -split " "
@@ -442,16 +438,8 @@ function sfc_log {
 
     $log = $LOGSPATH[2]
     $time = Get-Date -Format "HH:mm:ss"
-    #Output it to a file
-    Out-File $log\sfc.txt -InputObject "Starting SFC at: $time" -Append
-    
-    for ($i=0; $i -lt $newContainer.Count; $i++) {
-        if ($newContainer[$i] -eq ".") {
-            Out-File $log\sfc.txt -InputObject $newContainer[$i] -Append
-        } else {
-            Out-File $log\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
-        }
-    }
+    $sfc_log = ("SFC Time started at: " + $time + "`n" + $container)
+    log_data -name_of_file "SFC" -data $sfc_log
 }
 
 function checkdisk_no_log {
@@ -489,18 +477,35 @@ function checkdisk_no_log {
 function checkdisk_log {
     $log = $Global:LOGSPATH[2]
     $time = Get-Date -Format "HH:mm:ss"
-    Out-File $log\chkdsk.txt -InputObject "Starting CHKDSK at: $time" -Append
+    Write-Host "Running CHKDSK" -ForegroundColor Green
+    #Out-File $log\chkdsk.txt -InputObject "Starting CHKDSK at: $time" -Append
+    $chkdsk_time = "CHKDSK Time Started at: " + $time
+    $chkdsk_log = ""
+    $container = @()
     foreach($drive in $Global:unlockedDrives) {
-        Out-File $log\chkdsk.txt -InputObject ("Running CHKDSK on drive: " + [String]$drive.driveLetter) -Append
+        #Out-File $log\chkdsk.txt -InputObject ("Running CHKDSK on drive: " + [String]$drive.driveLetter) -Append
         try {
-            echo y | chkdsk $drive.driveLetter /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
+            echo y | chkdsk $drive.driveLetter /f /r /x /b | Tee-Object -Variable container
+            if ($container -contains "Cannot lock current drive.") {
+                $container = @("Passed 'Y' to run offline!")
+            }
+            if ($container -contains "Windows supports re-evaluating bad clusters on NTFS volumes only.") {
+                $container = @()
+                chkdsk $drive.driveLetter | Tee-Object -Variable container
+            }
         }
         catch {
             Write-Host "Unable to run CHKDSK on drive: " $drive.driveLetter -ForegroundColor Red
             Start-Sleep 1.5
             continue
         }
+        $container += "Run on drive: " + $drive.driveLetter
+        $chkdsk_log = ($chkdsk_time + "`n" + $container)
+        log_data -name_of_file ("Checkdisk_drive_" + $drive) -data $chkdsk_log
+        $chkdsk_log = ""
+        $container = @()
     }
+
     #echo y | chkdsk C: /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
 }
 function StandardCleanupNoLogs {
@@ -518,26 +523,54 @@ function StandardCleanupLogs {
     if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1) {
         StandardCleanupNoLogs
     }
+    clear_last_run
     $log = $Global:LOGSPATH[2]
+
     Write-Host "Starting standard cleanup with logs in user account folder"
     Write-Host "Logs will be located in " $log
+
+    run_dism
+    
+    sfc_log
+
+    # echo y | chkdsk C: /f /r /x /b 
+    
+    checkdisk_log
+
+    countdown -seconds 10 -message "SHUTTING DOWN"
+    shutdown /f /r /t 0
+    getkeyPress
+}
+
+function run_dism {
+    Param (
+        [Parameter(Mandatory=$false)][bool]$logs=$true,
+        [Parameter(Mandatory=$false)][string]$source=""
+    )
     Write-Host "Running DISM" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
     Write-Host "Current Time: $time"
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Out-File $log\DISM.txt -InputObject "Time Started $time" -Append
-    Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath $log\DISM.txt
-    Write-Host "Running SFC" -ForegroundColor Green
-    $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Current Time: $time"
-    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    sfc_log
-    # echo y | chkdsk C: /f /r /x /b 
-    Write-Host "Running CHKDSK" -ForegroundColor Green
-    checkdisk_log
-    countdown -seconds 10 -message "SHUTTING DOWN"
-    shutdown /f /r /t 0
-    getkeyPress
+    $dism_time = "DISM Time Started at: " + $time
+    $dism_log = ""
+    $container = @()
+    if ($logs) {
+        if ($source -eq "") {
+            Dism.exe /online /cleanup-image /restorehealth | Tee-Object -Variable container
+        } else {
+            Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -Variable container
+        }
+        
+        $dism_log = ($dism_time + "`n" + $container)
+        log_data -name_of_file "DISM" -data $dism_log
+    } else {
+        if ($source -eq "") {
+            Dism.exe /online /cleanup-image /restorehealth
+        } else {
+            Dism.exe /online /cleanup-image /restorehealth /source:$source
+        }
+    }
+    return
 }
 
 function CreateAdminAccount {
@@ -647,6 +680,12 @@ function full_clear_logs {
 
 }
 
+function clear_last_run {
+    Clear-Host
+    Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run\*"
+    return
+}
+
 function create_folders {
     # New log file location
     # C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
@@ -658,6 +697,18 @@ function create_folders {
                 $time = Get-Date -Format "HH_mm_ss"
                 mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time
                 $LOGSPATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time"
+                if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run) {
+                    $Global:LASTRUN_PATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run"
+                } else {
+                    Try {
+                        mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run
+                        $Global:LASTRUN_PATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run"
+                    } Catch {
+                        Write-Host "Unable to create last run folder!" -ForegroundColor Red
+                        Write-Host "Press any key to continue..."
+                        getKeyPress
+                    }
+                }
                 return (1, $LOGSPATH)
             } Catch {
                 Write-Host "Unable to create log folder!" -ForegroundColor Red
@@ -686,6 +737,29 @@ function create_folders {
         return (0, $LOGSPATH)
         }
     }
+}
+
+function log_data {
+    Param (
+        [Parameter(Mandatory=$true)][string]$name_of_file,
+        [Parameter(Mandatory=$true)][string]$data
+    )
+    if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1 -or $Global:LASTRUN_PATH -eq 0) {
+        throw "Something went terribly wrong, please report this error. Code 01"
+        # Def should not get to this point, will add more error checking later, just trying to get a rough idea working
+    }
+    $log = $Global:LOGSPATH[2]
+    $last_run = $Global:LASTRUN_PATH
+    $data = $data.replace("[", "`n[")
+    $data = $data.replace("]", "]`n")
+    $data = $data -replace '\D\.', ". `n"
+    Try {
+        Out-File $log\$name_of_file.txt -InputObject $data
+        Out-File $last_run\$name_of_file.txt -InputObject $data
+    } catch {
+        throw "Please run without logs, we don't have access to write logs!"
+    }
+    return
 }
 
 function getListOfUsers {
@@ -957,32 +1031,74 @@ function change_time_zone {
     main_menu
 }
 
+function view_last_results {
+    Clear-Host
+    if ($Global:LASTRUN_PATH -eq 0) {
+        display_single_message -message "No last run data!"
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+    $log = $Global:LASTRUN_PATH
+    
+    try {
+        $container = Get-ChildItem -Path $log -Force
+    } catch {
+        display_single_message -message "Unable to check for last run!"
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+    if ($container.Length -eq 0) {
+        display_single_message -message "No last run data found!"
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+    foreach ($file in $container) {
+        try {
+            Get-Content -Path $log\$file -Raw | oh #more -s
+            Write-Host "Press any key to continue..."
+            getKeyPress
+        } catch {
+            display_single_message -message ("Unable to open " + $file)
+        }
+    }
+    return
+}
+
 function main_menu {
     while ($true) {
-        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "User Control", "BitLocker", "Boot Options", "New Setup Settings / OS Settings", "Patch Notes", "Options", "Exit")
+        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "View last run", "User Control", "BitLocker", "Boot Options", "New Setup Settings / OS Settings", "Patch Notes", "Options", "Exit")
         switch((display_message -messages $messages -top 2 -selection 2)-1) {
             1 {
                 repair_menu
             }
             2 {
-                user_control
+                view_last_results
             }
             3 {
-                BitLocker
+                user_control
             }
             4 {
-                boot_options
+                BitLocker
             }
             5 {
-                new_set_up_settings_menu
+                boot_options
             }
             6 {
-                changeLog
+                new_set_up_settings_menu
             }
             7 {
-                show_options
+                changeLog
             }
             8 {
+                show_options
+            }
+            9 {
                 exit
             }
         }
