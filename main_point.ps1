@@ -376,6 +376,7 @@ function StandardCleanupWithSource {
         StandardCleanupNoLogs
     }
     $log = $Global:LOGSPATH[2]
+    clear_last_run
     Write-Host "Starting standard cleanup"
     Write-Host "Logs will be located in " $log
     
