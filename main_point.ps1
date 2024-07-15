@@ -661,7 +661,8 @@ function create_folders {
                 return (1, $LOGSPATH)
             } Catch {
                 Write-Host "Unable to create log folder!" -ForegroundColor Red
-                Start-Sleep 1.5
+                Write-Host "Press any key to continue..."
+                getKeyPress
                 return (0, $LOGSPATH)
         }
     }
@@ -670,7 +671,8 @@ function create_folders {
             create_folders
         } Catch {
             Write-Host "Unable to create log folder!" -ForegroundColor Red
-            Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
             return (0, $LOGSPATH)
         }
     } else {
@@ -679,7 +681,8 @@ function create_folders {
             create_folders
         } Catch {
         Write-Host "Unable to create log folder!" -ForegroundColor Red
-        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
         return (0, $LOGSPATH)
         }
     }
@@ -746,7 +749,8 @@ function deleteUser {
                 return
             }
             Write-Host "User deleted!" -ForegroundColor Green
-            Start-Sleep .5
+            Write-Host "Press any key to continue..."
+            getKeyPress
             Clear-Host
         } else {
             return
