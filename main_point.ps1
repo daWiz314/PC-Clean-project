@@ -11,7 +11,7 @@ $website = "dawiz314.github.io"
 function add_lines {
     # Parameters
     param (
-        [Parameter(Mandatory=$true)][int]$lines
+        [Parameter(Mandatory=$True)][int]$lines
     )
     for($i=0; $i -lt $lines; $i++) {
         Write-Host
@@ -22,7 +22,7 @@ function add_lines {
 function add_spaces {
     # Parameters
     param (
-        [Parameter(Mandatory=$true)][int]$spaces
+        [Parameter(Mandatory=$True)][int]$spaces
     )
     $test = "";
     for($i=0; $i -lt $spaces; $i++) {
@@ -35,7 +35,7 @@ function add_spaces {
 function display_message {
     # Parameters
     param (
-        [Parameter(Mandatory=$true)][string[]]$messages,
+        [Parameter(Mandatory=$True)][string[]]$messages,
         [Parameter(Mandatory=$false)][int]$top=1,
         [Parameter(Mandatory=$false)][int]$selection=$top+1
     )
@@ -74,7 +74,7 @@ function display_message {
 function display_single_message {
     # Parameters
     param (
-        [Parameter(Mandatory=$true)][string]$message
+        [Parameter(Mandatory=$True)][string]$message
     )
     Clear-Host
     add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-1)
@@ -143,7 +143,7 @@ function bitlocker_helper {
         if ($lock_status -match "Unlocked") {
             $lock_status = $false
         } else {
-            $lock_status = $true
+            $lock_status = $True
         }
         $encryption_percentage = $container2 | Where-Object {$_ -match "Percentage Encrypted"}
         $encryption_percentage = $encryption_percentage -replace ".*:\s", ""
@@ -155,7 +155,7 @@ function bitlocker_helper {
     $Global:unlockedDrives = @()
 
     foreach ($drive in $bitlockerDrives) {
-        if ($drive.lockStatus -eq $true) {
+        if ($drive.lockStatus -eq $True) {
             $Global:lockedDrives += $drive
         } else {
             $Global:unlockedDrives += $drive
@@ -194,9 +194,9 @@ function bitlocker {
 
 function unlockDrive {
     param (
-        [Parameter(Mandatory=$true)][bitlockerDrive[]]$bitlockerDrives
+        [Parameter(Mandatory=$True)][bitlockerDrive[]]$bitlockerDrives
     )
-    while ($true) {
+    while ($True) {
         Clear-Host
         Write-Host "Choose a drive to unlock:"
         for ($i=0; $i -lt $bitlockerDrives.count; $i++) {
@@ -230,7 +230,7 @@ function getKeyPress {
 
 function confirm {
     param (
-        [Parameter(Mandatory=$true)][string]$message
+        [Parameter(Mandatory=$True)][string]$message
     )
     Clear-Host
     Write-Host $message -ForegroundColor Red
@@ -251,8 +251,8 @@ function confirm {
 
 function countdown {
     param (
-        [Parameter(Mandatory=$true)][int]$seconds,
-        [Parameter(Mandatory=$true)][string]$message
+        [Parameter(Mandatory=$True)][int]$seconds,
+        [Parameter(Mandatory=$True)][string]$message
     )
     Clear-Host
     Write-Host $message " IN " $seconds " SECONDS" -ForegroundColor Red
@@ -401,7 +401,7 @@ function StandardCleanupWithSource {
         Start-Sleep 1.5
         standard_clean_up
     }
-    run_dism -logs $true, -source $source
+    run_dism -logs $True, -source $source
     sfc_log
     checkdisk_log
     countdown -seconds 10 -message "SHUTTING DOWN"
@@ -545,7 +545,7 @@ function StandardCleanupLogs {
 
 function run_dism {
     Param (
-        [Parameter(Mandatory=$false)][bool]$logs=$true,
+        [Parameter(Mandatory=$false)][bool]$logs=$True,
         [Parameter(Mandatory=$false)][string]$source=""
     )
     Write-Host "Running DISM" -ForegroundColor Green
@@ -742,8 +742,8 @@ function create_folders {
 
 function log_data {
     Param (
-        [Parameter(Mandatory=$true)][string]$name_of_file,
-        [Parameter(Mandatory=$true)][string]$data
+        [Parameter(Mandatory=$True)][string]$name_of_file,
+        [Parameter(Mandatory=$True)][string]$data
     )
     if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1 -or $Global:LASTRUN_PATH -eq 0) {
         throw "Something went terribly wrong, please report this error. Code 01"
@@ -1072,7 +1072,7 @@ function view_last_results {
 }
 
 function main_menu {
-    while ($true) {
+    while ($True) {
         $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "View last run", "User Control", "BitLocker", "Boot Options", "New Setup Settings / OS Settings", "Patch Notes", "Options", "Exit")
         switch((display_message -messages $messages -top 2 -selection 2)-1) {
             1 {
