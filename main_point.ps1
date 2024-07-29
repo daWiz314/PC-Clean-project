@@ -401,7 +401,7 @@ function StandardCleanupWithSource {
         Start-Sleep 1.5
         standard_clean_up
     }
-    run_dism -logs $True, -source $source
+    run_dism -source $source
     sfc_log
     checkdisk_log
     countdown -seconds 10 -message "SHUTTING DOWN"
