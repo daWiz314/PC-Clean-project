@@ -942,7 +942,7 @@ function toggle_new_context_menu {
 }
 
 function new_set_up_settings_menu {
-    $messages = @("New Setup Settings / OS Settings", "Choose an option:", "Reset Windows Update", "Change Time Zone", "Toggle new context menu","Back to main menu")
+    $messages = @("New Setup Settings / OS Settings", "Choose an option:", "Reset Windows Update", "Change Time Zone", "Toggle new context menu","Create new User from OOBE", "Back to main menu")
     switch((display_message -messages $messages -selection 2)-1) {
         1 {
             resetWindowsUpdate
@@ -953,7 +953,10 @@ function new_set_up_settings_menu {
         3 {
             toggle_new_context_menu
         }
-        4 {
+	4 {
+	    skip_windows_account_creation
+	}
+        5 {
             main_menu
         }
     }
@@ -1030,6 +1033,16 @@ function change_time_zone {
     }
     Display_single_message -message "Time resynced!"
     main_menu
+}
+
+function skip_windows_account_creation {
+    Clear-Host
+    display_single_message -message "Use this tool to create a new user with the OOBE environment."
+    Start-Sleep 1.5
+    Start ms-cxh:localonly
+    $messages = @("Tool should have launched. After you create a user, it will auto login!", "Press the return key to return to the menu!")
+    display_message -messages $messages -top 1
+    return # Redundent, but I want it here.
 }
 
 function view_last_results {
