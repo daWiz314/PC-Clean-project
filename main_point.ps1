@@ -1,22 +1,647 @@
-# This script maybe a little bit of a mess
-# But that's cuz I am trying to do it
-# In a Object Orientated way
-# Are there better ways to do it?
-# Yes
-# Could use a different language to do it all easier
-# But
-# That would not get the job done in the way I need it done
 
-$VERSION = "1.0.10"
+#Test change to verify git is working
+
+# Redoing the code almost entirely 
+# Aiming for more of a Class/Object oriented approach but the downside is
+# When looking at this code with the ideas or concepts of the book Philosophy of Software Design 2nd Edition by Jogn Ousterhout
+# It doesn't align with the ideals laid out in his book.
+# Most of the classes only interact with each other to display.
+# Each of the classes will contain all the methods related to that menu or subject.
+# Example, the repair menu will have all the methods related to the repairs
+# The options menu will have all the methods related to the options and file management
+#
+# The purpose of the run function is to run the NEW parts of the script.
+
+$VERSION = "1.1.2"
 $LOGSPATH = ""
+$LASTRUN_PATH = ""
+# Website for the script
+$website = "dawiz314.github.io"
+
+
+function detectKeyPress {
+    # Detect key press
+    # 38 = Up arrow
+    # 40 = Down arrow
+    # 37 = Left arrow
+    # 39 = Right arrow
+    # 13 = Enter
+    $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    switch ($key.VirtualKeyCode) {
+        38 {
+            return "up"
+        }
+        40 {
+            return "down"
+        }
+        37 {
+            return "left"
+        }
+        39 {
+            return "right"
+        }
+        13 {
+            return "enter"
+        }
+        81 {
+            return "q"
+        }
+    }
+    detectKeyPress
+
+}
+
+class Message {
+    [string]        $message
+    [string]        $background_color
+    [string]        $foreground_color
+    [ScriptBlock]   $function
+    [bool]          $selectable
+
+    Message([string]$message, [ScriptBlock]$function, [bool]$selectable = $false) {
+        $this.Init($message, (get-host).UI.RawUI.BackgroundColor, (get-host).UI.RawUI.ForegroundColor, $function, $selectable)
+    }
+
+    Message([string]$message, [string]$background_color, [string]$foreground_color, [ScriptBlock]$function, [bool]$selectable = $false) {
+        $this.Init($message, $background_color, $foreground_color, $function, $selectable)
+    }
+
+    [void]Init([string]$message, [string]$background_color, [string]$foreground_color, [ScriptBlock]$function, [bool]$selectable) {
+        $this.message = $message
+        $this.background_color = $background_color
+        $this.foreground_color = $foreground_color
+        $this.function = $function
+        $this.selectable = $selectable
+    }
+
+    [void]display([bool]$selected=$false) {
+        if ($selected) {
+            Write-Host "> " $this.message " <" -BackgroundColor $this.background_color -ForegroundColor $this.foreground_color
+        } else {
+            Write-Host $this.message -BackgroundColor $this.background_color -ForegroundColor $this.foreground_color
+        }
+    }
+}
+
+class Display_Util {
+    [Message[]] $messages
+    [int] $top = 0
+
+    Display_Util() {}
+
+    [void] display_messages() {
+        $this.display_messages(0)
+    }
+
+    [void] display_messages([int]$selection) {
+        Clear-Host
+
+        if ($selection -le 0) {
+            if ($this.messages[0].selectable) {
+                $selection = 0
+                $this.top = 0
+            } else {
+                foreach ($message in $this.messages) {
+                    if ($message.selectable) {
+                        $selection = $this.messages.IndexOf($message)
+                        $this.top = $selection
+                        break
+                    }
+                }
+            }
+        }
+
+        foreach ($message in $this.messages) {
+            if ($message.selectable -and $selection -eq $this.messages.IndexOf($message)) {
+                $message.display($true)
+            } else {
+                $message.display($false)
+            }
+        }
+        while($true) {
+            $key = detectKeyPress
+            if ($key -eq "up") {
+                if ($selection -gt $this.top) {
+                    $selection--
+                    break
+                } else {
+                    $selection = $this.messages.Length - 1
+                    break
+                }
+            } elseif ($key -eq "down") {
+                if ($selection -lt ($this.messages.Length - 1)) {
+                    $selection++
+                    break
+                } else {
+                    $selection = $this.top
+                    break
+                }
+            } elseif ($key -eq "enter") {
+                $this.messages[$selection].function.Invoke()
+                break
+            }
+        }
+        $this.display_messages($selection)
+    }
+}
+
+function test {
+    $messages = @(
+        [Message]::new("Test", "Black", "White", { Write-Host "Test" }, $true),
+        [Message]::new("Test2", { Write-Host "Test2" }, $true),
+        [Message]::new("Test3", "Black", "White", { Write-Host "Test3" }, $true)
+    )
+
+    $display = [Display_Util]::new()
+    $display.messages = $messages
+    $display.display_messages()
+    Start-Sleep 30
+    quit
+}
+
+class MainMenu : Display_Util {
+
+    MainMenu() {
+        $this.messages = @(
+            [Message]::new("V" + $global:VERSION, "Black", "Green", {}, $false),
+            [Message]::new("Main Menu", "Black", "White", { }, $false),
+            [Message]::new("Repair Menu", { $global:repair_menu.display_messages()}, $true),
+            [Message]::new("BitLocker", { bitlocker }, $true),
+            [Message]::new("Boot Options", { $global:boot_menu.display_messages() }, $true),
+            [Message]::new("Options", { $global:options_menu.display_messages() }, $true),
+            [Message]::new("Exit", { exit }, $true)
+        )
+    }
+}
+
+class Repair_Menu : Display_Util {
+    [string] $source = ""
+
+    [Message[]] $original_messages = @(
+        [Message]::new("Repair Menu", "Black", "White", { }, $false),
+        [Message]::new("Standard Cleanup", { $this.standard_clean_up() }, $true),
+        [Message]::new("Fix Drives", { fix_drives }, $true),
+        [Message]::new("Back to main menu", { $global:main_menu.display_messages() }, $true)
+    )
+
+    Repair_Menu() {
+        $this.messages = $this.original_messages
+    }
+
+    [void] standard_clean_up() {
+        $clean_up_messages = @(
+            [Message]::new("Standard Cleanup", "Black", "White", { }, $false),
+            [Message]::new("Without source", { StandardCleanupNoLogs }, $true),
+            [Message]::new("With source", { StandardCleanupWithSource }, $true),
+            [Message]::new("Back to main menu", { $this.return_to_main_menu() }, $true)
+        )
+        $this.messages = $clean_up_messages
+        $this.display_messages()
+    }
+
+    $dism_job = {
+        param (
+            [string]$source = "",
+            [string]$LASTRUN_PATH = ""
+            )
+        if ($source -eq "") {
+            $output = Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath C:\Users\hfmar\Dism.txt #-FilePath $LASTRUN_PATH + "\DISM.txt"
+        } else {
+            $output = Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $LASTRUN_PATH + "\DISM.txt"
+        }
+        
+    }
+
+    [void] dism_output([string]$log) {
+        Write-Host "Running DISM!"
+        if ($this.source -eq "") {
+            Write-Host "With no source file!"
+        } else {
+            Write-Host "With source file: " $this.source
+        }
+        Write-Host "Logs will be located in " $log
+    }
+
+    [void] dism() {
+        if ($global:LOGSPATH -eq 0) {
+            if ($this.source -eq "") {
+                Dism.exe /online /cleanup-image /restorehealth
+            } else {
+                Dism.exe /online /cleanup-image /restorehealth /source:$this.source
+            }
+
+            start-sleep 3
+        } else {
+            $log = $global:LOGSPATH[2]
+            $global:options_menu.clear_last_run()
+            Write-Host "Running DISM!"
+            if ($this.source -eq "") {
+                Write-Host "With no source file!"
+            } else {
+                Write-Host "With source file: " $this.source
+            }
+
+            Write-Host "Logs will be located in " $log
+
+            $old_content = ""
+            $count = 1
+            $job = Start-Job -scriptBlock $this.dism_job -ArgumentList $this.source, $global:LASTRUN_PATH
+            while($true) {
+                try{
+                    $path = C:\Users\hfmar\Dism.txt #$global:LASTRUN_PATH + "\DISM.txt"
+                    if (Test-Path $path) {
+                        $contents = Get-Content -Path $path
+                        if ($contents -ne $null) {
+                            $contents = $contents.Trim()
+                            if ($old_content -ne $contents[-1]) {
+                                Clear-Host
+                                $this.dism_output($log)
+
+                                Write-Host -NoNewLine $contents[-1]
+                                $old_content = $contents
+                            }
+                        }
+                    } else {
+                        if ($old_content -ne "Waiting on a return value.") {
+                            $old_content = "Waiting on a return value."
+                            Clear-Host
+                            $this.dism_output($log)
+
+                            Write-Host -NoNewLine $old_content
+                        }
+                    }
+                } catch {
+
+                }
+                Start-Sleep 1
+
+                # Write-Host -noNewLine " ."
+                # $count += 1
+
+                # if ($count -eq 5) {
+                #     $count = 1
+                #     $this.dism_output($log)
+                #     Clear-Host -noNewLine $old_content
+                # }
+            }
+        }
+    }
+
+    [void] return_to_main_menu() {
+        $this.messages = $this.original_messages
+        $global:main_menu.display_messages()
+    }
+}
+
+class Boot_Menu : Display_Util {
+    Boot_Menu() {
+        $this.messages = @(
+            [Message]::new("Boot Menu", "Black", "White", { }, $false),
+            [Message]::new("Boot into UEFI settings", { $this.uefi_settings() }, $true),
+            [Message]::new("Boot into advanced startup", { $this.advanced_startup() }, $true),
+            [Message]::new("Reboot", { $this.reboot() }, $true),
+            [Message]::new("Back to main menu", { $global:main_menu.display_messages() }, $true)
+        )
+    }
+
+    [void] uefi_settings() {
+        countdown -seconds 3 -message "Booting into UEFI Settings"
+        shutdown /r /f /fw /t 00
+    }
+
+    [void] advanced_startup() {
+        countdown -seconds 3 -message "Booting into Advanced Startup"
+        shutdown /r /f /o /t 00
+    }
+
+    [void] reboot() {
+        countdown -seconds 3 -message "Rebooting"
+        shutdown /r /f /t 00
+    }
+
+}
+
+class Options_Menu : Display_Util {
+    Options_Menu() {
+        # $this.messages = @(
+        #     [Message]::new("Options Menu", "Black", "White", { }, $false),
+        #     [Message]::new("Logs turned " + $(if ($global:LOGSPATH -eq 0) { "off!" } else { "on!" }), "Black", "White", { }, $false),
+        #     [Message]::new("Toggle logs", { $global:LOGSPATH = create_folders }, $true),
+        #     [Message]::new("Clear this scripts data and recreate folder", { $this.clear_logs() }, $true),
+        #     [Message]::new("Clear all data and DO NOT recreate it", { $this.full_clear_logs() }, $true),
+        #     [Message]::new("Back to main menu", { $global:main_menu.display_messages() }, $true)
+        # )
+    }
+
+    [void] display_messages() {
+        $this.messages = @(
+            [Message]::new("Options Menu", "Black", "White", { }, $false),
+            [Message]::new("Logs turned " + $(if ($global:LOGSPATH -eq 0) { "off!" } else { "on!" }), "Black", "White", { }, $false),
+            [Message]::new("Toggle logs", { $this.toggle_logs()}, $true),
+            [Message]::new("Clear this scripts data and recreate folder", { $this.clear_logs() }, $true),
+            [Message]::new("Clear all data and DO NOT recreate it", { $this.full_clear_logs() }, $true),
+            [Message]::new("Back to main menu", { $global:main_menu.display_messages() }, $true)
+        )
+        ([Display_Util]$this).display_messages()
+    }
+
+    [void] toggle_logs() {
+        if ($Global:LOGSPATH -eq 0) {
+            $Global:LOGSPATH = $this.create_folders
+        } else {
+            $Global:LOGSPATH = 0
+        }
+        $this.display_messages()
+    }
+
+    [void] clear_logs() {
+        Clear-Host
+        Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\temp\pc_cleanup"
+        $global:LOGSPATH = $this.create_folders
+        Write-Host "Logs cleared!" -ForegroundColor Green
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+
+    [void] full_clear_logs() {
+        Clear-Host
+        Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\temp\pc_cleanup"
+        Write-Host "All data cleared!" -ForegroundColor Green
+        $Global:LOGSPATH = 0
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+
+    [System.Tuple[int,string]] create_folders() {
+        # New log file location
+        # C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
+        $LOGSPATH = ""
+        if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup) {
+            $date = Get-Date -Format "MM-dd-yyyy"
+            if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date) {
+                Try {
+                    $time = Get-Date -Format "HH_mm_ss"
+                    mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time
+                    $LOGSPATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time"
+                    if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run) {
+                        $Global:LASTRUN_PATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run"
+                    } else {
+                        Try {
+                            mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run
+                            $Global:LASTRUN_PATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run"
+                        } Catch {
+                            Write-Host "Unable to create last run folder!" -ForegroundColor Red
+                            Write-Host "Press any key to continue..."
+                            getKeyPress
+                        }
+                    }
+                    return (1, $LOGSPATH)
+                } Catch {
+                    Write-Host "Unable to create log folder!" -ForegroundColor Red
+                    Write-Host "Press any key to continue..."
+                    getKeyPress
+                    return (0, $LOGSPATH)
+            }
+        }
+            Try {
+                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date
+                create_folders
+            } Catch {
+                Write-Host "Unable to create log folder!" -ForegroundColor Red
+                Write-Host "Press any key to continue..."
+                getKeyPress
+                return (0, $LOGSPATH)
+            }
+        } else {
+            Try {
+                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
+                create_folders
+            } Catch {
+            Write-Host "Unable to create log folder!" -ForegroundColor Red
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            return (0, $LOGSPATH)
+            }
+        }
+        return (0, $LOGSPATH)
+    }
+
+    [void] clear_last_run() {
+        Clear-Host
+        Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run\*"
+        return
+    }
+}
+
+function run {
+    $global:main_menu = [MainMenu]::new()
+    $global:repair_menu = [Repair_Menu]::new()
+    $global:boot_menu = [Boot_Menu]::new()
+    $global:options_menu = [Options_Menu]::new()
+    # $main_menu.display_messages()
+    $global:repair_menu.dism()
+    exit
+}
+
+
+
+function add_lines {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$True)][int]$lines
+    )
+    for($i=0; $i -lt $lines; $i++) {
+        Write-Host
+    }
+
+}
+
+function add_spaces {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$True)][int]$spaces
+    )
+    $test = "";
+    for($i=0; $i -lt $spaces; $i++) {
+        $test += " "
+    }
+    return $test
+}
+
+function display_message {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$True)][string[]]$messages,
+        [Parameter(Mandatory=$false)][int]$top=1,
+        [Parameter(Mandatory=$false)][int]$selection=$top+1
+    )
+    Clear-Host
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$messages.Length + 1)
+    foreach($message in $messages) {
+        if ($selection -eq $messages.IndexOf($message)) {
+            $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
+            Write-Host $spaces -NoNewLine
+            Write-Host $message.Trim() -BackgroundColor White -ForegroundColor Black
+        } else {
+            $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
+            Write-Host $spaces$message
+        }
+    }
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-$messages.Length)
+    $key = detectKeyPress
+    if ($key -eq "up") {
+        if ($selection -gt $top+1) {
+            $selection--
+        } else {
+            $selection = $messages.Length - 1
+        }
+    } elseif ($key -eq "down") {
+        if ($selection -lt ($messages.Length - 1)) {
+            $selection++
+        } else {
+            $selection = $top+1
+        }
+    } elseif ($key -eq "enter") {
+        return $selection
+    }
+    display_message -messages $messages -selection $selection
+}
+
+function display_single_message {
+    # Parameters
+    param (
+        [Parameter(Mandatory=$True)][string]$message
+    )
+    Clear-Host
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-1)
+    $spaces = add_spaces -spaces (($Host.UI.RawUI.WindowSize.Width/2)-($message.Length/2))
+    Write-Host $spaces$message
+    add_lines -lines (($Host.UI.RawUI.WindowSize.Height/2)-1)
+
+}
+
+
+
+class bitlockerDrive {
+    [string]$driveLetter
+    [bool]$lockStatus
+    [string]$encryptionPercentage
+
+    bitlockerDrive([string]$driveLetter, [bool]$lockStatus, [string]$encryptionPercentage) {
+        $this.driveLetter = $driveLetter
+        $this.lockStatus = $lockStatus
+        $this.encryptionPercentage = $encryptionPercentage
+    }
+}
+
+# Need to fix this so it can read all drives, and stop erroring out
+function bitlocker_helper {
+    $container = fsutil.exe fsinfo drives
+    $container = $container -split ":"
+    $container = ($container | Where-Object {$_ -match "\s\w"}) -replace "\\", ""
+    Clear-Host
+
+    $Global:bitlockerDrives = @()
+    
+    foreach ($drive in $container.trim()) {
+        $container2 = manage-bde.exe $drive":" -status
+        $container2 = $container2 -split "\n"
+        $lock_status = $container2 | Where-Object {$_ -match "Lock Status"}
+        if ($lock_status -match "Unlocked") {
+            $lock_status = $false
+        } else {
+            $lock_status = $True
+        }
+        $encryption_percentage = $container2 | Where-Object {$_ -match "Percentage Encrypted"}
+        $encryption_percentage = $encryption_percentage -replace ".*:\s", ""
+    
+        $Global:bitlockerDrives += ([bitlockerDrive]::new(($drive + ":"),$lock_status, [string]$encryption_percentage))
+    }
+    
+    $Global:lockedDrives = @()
+    $Global:unlockedDrives = @()
+
+    foreach ($drive in $bitlockerDrives) {
+        if ($drive.lockStatus -eq $True) {
+            $Global:lockedDrives += $drive
+        } else {
+            $Global:unlockedDrives += $drive
+        }
+    }
+}
+function bitlocker {
+    Clear-Host
+    bitlocker_helper
+    Write-Host "BitLocker" -ForegroundColor Green
+    Write-Host "Locked Drives: " -NoNewline
+    foreach ($drive in $Global:lockedDrives) {
+        Write-Host $drive.driveLetter -NoNewline
+        Write-Host " " -NoNewline
+    }
+    Write-Host ""
+    Write-Host "Unlocked Drives: " -NoNewline
+    foreach ($drive in $Global:unlockedDrives) {
+        Write-Host $drive.driveLetter -NoNewline
+        Write-Host " " -NoNewline
+    }
+    Write-Host ""
+    if ($Global:lockedDrives.count -eq 0) {
+        Write-Host "No locked drives!" -ForegroundColor Green
+        Start-Sleep 1.5
+        return
+    }
+    Write-Host "Unlock any drives? (y/n)"
+    $choice = getKeyPress
+    if ($choice -eq 'y') {
+        unlockDrive($Global:lockedDrives)
+    } else {
+        return
+    }
+}
+
+function unlockDrive {
+    param (
+        [Parameter(Mandatory=$True)][bitlockerDrive[]]$bitlockerDrives
+    )
+    while ($True) {
+        Clear-Host
+        Write-Host "Choose a drive to unlock:"
+        for ($i=0; $i -lt $bitlockerDrives.count; $i++) {
+            Write-Host "$i)" $bitlockerDrives[$i].driveLetter
+        }
+        Write-Host "q) Main Menu"
+        $choice = Read-Host ">"
+        if ($choice -eq 'q') {
+            main_menu
+        } 
+        if ([int]$choice -lt $bitlockerDrives.count-1) {
+            Write-Host "Attempting to unlock drive: " $bitlockerDrives[$choice].driveLetter
+            manage-bde.exe $bitlockerDrives[[int]$choice].driveLetter"-off"
+            manage-bde.exe $bitlockerDrives[[int]$choice].driveLetter"-unlock"
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            unlockDrive
+        } else {
+            Write-Host "Invalid choice!" -ForegroundColor Red
+            Write-Host "Please try again!" -ForegroundColor Red
+            Start-Sleep 1
+            continue
+        }
+    }
+}
 
 function getKeyPress {
-    return $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")   
+    $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    return $key.Character
 }
 
 function confirm {
     param (
-        [Parameter(Mandatory=$true)][string]$message
+        [Parameter(Mandatory=$True)][string]$message
     )
     Clear-Host
     Write-Host $message -ForegroundColor Red
@@ -29,7 +654,7 @@ function confirm {
         Clear-Host
         return 1
     } else {
-        confirm
+        confirm -message $message
     }
 }
 
@@ -37,8 +662,8 @@ function confirm {
 
 function countdown {
     param (
-        [Parameter(Mandatory=$true)][int]$seconds,
-        [Parameter(Mandatory=$true)][string]$message
+        [Parameter(Mandatory=$True)][int]$seconds,
+        [Parameter(Mandatory=$True)][string]$message
     )
     Clear-Host
     Write-Host $message " IN " $seconds " SECONDS" -ForegroundColor Red
@@ -51,254 +676,157 @@ function countdown {
     return # To actually do the thing in $i seconds
 }
 
-$windowSize = $host.UI.RawUI.WindowSize
-$script:windowWidth = $windowSize.Width
-$script:windowHeight = $windowSize.Height
-
-# Write-Host $windowWidth
-# Write-Host $windowHeight
-
-#-----------------------------------------------------------------------------------------------------
-# MenuItem class
-# This contains all the menu items to display
-# The first item will be the display name
-# The second one with either be a function or just a block of code to execute
-
-class MenuItem {
-    [String]$name
-    [ScriptBlock]$function
-
-    MenuItem([String]$name, [ScriptBlock]$function) {
-        $this.name = $name
-        $this.function = $function
+# function to get change log and read it
+function changeLog {
+    Clear-Host
+    $log = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\change_log.txt"
+    try {
+        irm $website/patch_notes.txt > $log
     }
-}
-#-----------------------------------------------------------------------------------------------------
-
-
-#-----------------------------------------------------------------------------------------------------
-# Menu class
-# This is the base class for all menus
-# 2 Parameters
-# 1) Name of the menu
-# 2) Array of menu items
-
-class Menu {
-    [String]$name
-    [String[]]$extraItems
-    [MenuItem[]]$menuItems
-
-    Menu([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
-        $this.name = $name
-        $this.extraItems = $extraItems
-        $this.menuItems = $menuItems
-    }
-
-    [void]fixDisplay([String]$text) {
-        $textLength = $text.Length
-        $spaces = ""
-        for($i=0; $i -lt (($script:windowWidth - $textLength)/2); $i++) {
-            $spaces = " " + $this.spaces
-        }
-        Write-Host $spaces -NoNewLine
-    }
-
-    [void]display_menu($selected) {
-        for($i=0; $i -lt $this.menuItems.length; $i++) {
-            if ($selected -eq $i) {
-                $this.fixDisplay($this.menuItems[$i].name + "$i) >")
-                Write-Host "$i) >"$this.menuItems[$i].name -ForegroundColor White
-            } else {
-                $this.fixDisplay($this.menuItems[$i].name + "$i)")
-                Write-Host "$i)" $this.menuItems[$i].name -ForegroundColor White
-            }
-        }
+    catch {
+        Write-Host "Unable to get patch notes!" -ForegroundColor Red
+        Start-Sleep 1.5
         return
     }
-
-    # Just need to implement controls, then test out. 
-    # Returns 2 ints, the first one is the selector, the 2nd is the quit code
-    # Return quit codes:
-    # -2 : Nothing happened, continue
-    # -1 : quit
-    # 0 : continue
-    # 1 : select the item
-
-    [Int[]]get_input($selected) {
-        # Starting so we know if the user clicked something to do, and not a random letter
-        $code = -2
-        while ($true) {
-            $key = getKeyPress
-            if ($key.VirtualKeyCode -eq 27) { #Exit code
-                $code = -1
-                break
-            }
-            if ($key.Character -match "[0-9]") { # This way the user can type in the number instead of selecting it
-                $selected = [Int]$key.Character -  48 # Numbers start at 48
-                $code = 1
-                break
-            }
-            if ($key.VirtualKeyCode -eq 38) { # Up Arrow
-                if ($selected -le 0) {
-                    $selected = $this.menuItems.length-1
-                    break
-                } else {
-                    $selected -= 1
-                    break
-                }
-            }
-            if ($key.VirtualKeyCode -eq 40) { # Down arrow
-                if ($selected -ge $this.menuItems.length-1) {
-                    $selected = 0
-                    break
-                } else {
-                    $selected += 1
-                    break
-                }
-            }
-
-            if ($key.VirtualKeyCode -eq 13) { # Enter button
-                $code = 1
-                break
-            }
-
-            if ($code -eq -2) { # If we clicked a button that is not supported, do it all again
-                continue
-            } else {
-                break
-            }
-        }
-        return @($selected, $code) # A little messy, but this way it'll go through everything with only 1 return spot
-    }
-
-    [void]run() {
-        $selected = 0
-        $run = $true
-        while($run) {
-            Clear-Host
-            Write-Host "Press ESC to quit" -ForegroundColor Red
-            $this.fixDisplay($this.name)
-            Write-Host $this.name -ForegroundColor Green
-            foreach($item in $this.extraItems) {
-                Write-Host $item -ForegroundColor Green
-            }
-
-            $this.display_menu($selected)
-            $userInput = $this.get_input($selected)
-            $selected = $userInput[0]
-            if($userInput[1] -eq -1) {
-                $run = $false
-            } elseif ($userInput[1] -eq 1) {
-                $this.menuItems[$selected].function.Invoke()
-                continue
-            } else {
-                continue
-
-            }
-        }
-        return
-    }
-}
-#-----------------------------------------------------------------------------------------------------
-
-
-#-----------------------------------------------------------------------------------------------------
-# MainMenu class as well as set up
-# MainMenu class is not doing anything extra, compared to the base class. Setting up a class for it to keep code organized.
-class MainMenu : Menu {
-    MainMenu([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) : base([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
-
-    }
+    Get-Content -Path $log -Raw | more
+    Write-Host "Press any key to continue..."
+    getKeyPress
 }
 
-# Extra items to display, in the case of the MainMenu, just the version and if logs are turned on/off
-$mainMenuExtraItems = @(
-    $VERSION,
-    $(if($script:logs -eq 1) {"Logs are turned on!"} else {"Logs are turned off!"})
-)
-
-# Actual items to put in the menu
-$mainMenuItems = @(
-            [MenuItem]::new("DISM, SFC, CHKDSK, and reboot", {StandardCleanup}),
-            [MenuItem]::new("Create Admin account, and switch to it", {CreateAdminAccount}),
-            [MenuItem]::new("Disable Admin account", {DisableAdminAccount}),
-            [MenuItem]::new("Disable BitLocker", {DisableBitLocker}),
-            [MenuItem]::new("Boot Options", {$bootOptions.run()}),
-            [MenuItem]::new("Options", {ShowOptions}),
-            [MenuItem]::new("User Control", {userControl}),
-            [MenuItem]::new("New Setup Settings / OS Settings", {newSetUpSettings}),
-            [MenuItem]::new("Exit", {exit})
-        )
-
-
-#-----------------------------------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------------------------------
-# BootOptions Class as well as set up
-# Still not doing anything extra, just doing it to keep everything oragnized
-class BootOptions : Menu {
-    BootOptions([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) : base([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
-
-    }
-}
-
-$bootOptionsExtraItems = @(
-    "" # Nothing in here, as we don't have anything else to display right now
-)
-
-$bootOptionsMenuItems = @(
-    [MenuItem]::new("Boot into UEFI Settings", {countdown(3, "Booting into UEFI Settings"); shutdown /r /f /fw /t 00}),
-    [MenuItem]::new("Boot into Advanced Options", {countdown(3, "Booting into Advanced Options"); shutdown /f /r /o /t 00}),
-    [MenuItem]::new("Reboot", {countdown(3, "Rebooting..."); shutdown /f /r /t 00}),
-    [MenuItem]::new("Back to Main Menu", {return})
-)
-
-$bootOptions = [BootOptions]::new("Boot Options", $bootOptionsExtraItems, $bootOptionsMenuItems)
-
-#-----------------------------------------------------------------------------------------------------
-
-
-class DriveAttributes {
-    [String]$driveLetter
-    [String]$driveName
-    [Bool]$bitlocked
-    DriveAttributes([String]$driveLetter, [String]$driveName, [Bool]$bitlocked) {
-        $this.driveLetter = $driveLetter
-        $this.driveName = $driveName
-        $this.bitlocked = $bitlocked
-    }
-}
-
-#-----------------------------------------------------------------------------------------------------
-# BitLocker class as well as set up
-# This is a whole redo
-# Users will be able to enable and disable Bitlocker on any drive connected
-
-class BitLocker : Menu {
-    [DriveAttributes[]]$drives
-    BitLocker([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) : base([String]$name, [String[]]$extraItems, [MenuItem[]]$menuItems) {
-
-    }
-
-    [void]getDrives() {
-        
-
-    }
-}
-
-$mainMenu = [MainMenu]::new("Main Menu", $mainMenuExtraItems ,$mainMenuItems)
-$mainMenu.run()
-
-function StandardCleanup {
-    if ($script:logs -eq 0) {
-        StandardCleanupNoLogs
+function fix_drives {
+    Clear-Host
+    display_single_message -message "Fixing drives..."
+    $drives_run_on = checkdisk_no_log -runOnBootDrive $false
+    if ($drives_run_on -eq $null) {
+        display_single_message -message "No drives to fix!"
+        Start-Sleep 1.5
     } else {
-        StandardCleanupLogs
+        display_single_message -message ("Ran on drives: " + $drives_run_on)
+        Start-Sleep 1.5
     }
+    Write-Host "Press any key to continue..."
+    getKeyPress
+    return
+
+}
+
+function repair_menu {
+    $messages = @("Repair Menu", "Choose an option:", "DISM/SFC/CHKDSK", "Fix Drives", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
+        1 {
+            standard_clean_up
+        }
+        2 {
+            fix_drives
+        }
+        3 {
+            main_menu
+        }
+    }
+
+}
+
+function standard_clean_up {
+    $messages = @("Standard Cleanup", "Choose an option:", "Without source", "With source", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
+        1 {
+            if ($Global:LOGSPATH -eq 0) {
+                StandardCleanupNoLogs
+            } else {
+                StandardCleanupLogs
+            }
+        }
+        2 {
+            if ($Global:LOGSPATH -eq 0) {
+                StandardCleanupWithSourceNoLogs
+            } else {
+                StandardCleanupWithSource
+            }
+        }
+        3 {
+            main_menu
+        }
+    }
+}
+
+# Function standard cleanup with source and no logging
+function StandardCleanupWithSourceNoLogs {
+    Write-Host "Starting standard cleanup without logs"
+    # Get the source
+    $source = ""
+    # run this to update drives
+    bitlocker_helper
+    foreach ($drive in $Global:bitlockerDrives) {
+        if ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.wim")) {
+            $source = $drive.driveLetter + "\sources\install.wim"
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
+            $source = $drive.driveLetter + "\sources\install.esd"
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.swm")) {
+            $source = $drive.driveLetter + "\sources\install.swm"
+            break
+        }
+    }
+    if ($source -eq "") {
+        Write-Host "Unable to find source!" -ForegroundColor Red
+        Start-Sleep 1.5
+        standard_clean_up
+    }
+    run_dism -logs $false, -source $source
+    sfc.exe /scannow
+    checkdisk_no_log
+    countdown -seconds 10 -message "SHUTTING DOWN"
+    shutdown /f /r /t 0
+    getkeyPress
+}
+
+# Function standard cleanup with source
+function StandardCleanupWithSource {
+    if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1) {
+        StandardCleanupNoLogs
+    }
+    $log = $Global:LOGSPATH[2]
+    clear_last_run
+    Write-Host "Starting standard cleanup"
+    Write-Host "Logs will be located in " $log
+    
+    # Get the source
+    $source = ""
+    # run this to update drives
+    bitlocker_helper
+    foreach ($drive in $Global:bitlockerDrives) {
+        if ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.wim")) {
+            $source = $drive.driveLetter + "\sources\install.wim"
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.esd")) {
+            $source = $drive.driveLetter + "\sources\install.esd"
+            break
+        } elseif ([System.IO.File]::Exists($drive.driveLetter + "\sources\install.swm")) {
+            $source = $drive.driveLetter + "\sources\install.swm"
+            break
+        }
+    }
+    if ($source -eq "") {
+        Write-Host "Unable to find source!" -ForegroundColor Red
+        Start-Sleep 1.5
+        standard_clean_up
+    }
+    run_dism -source $source
+    sfc_log
+    checkdisk_log
+    countdown -seconds 10 -message "SHUTTING DOWN"
+    shutdown /f /r /t 0
+    getkeyPress
 }
 
 function sfc_log {
-    $container = sfc.exe /scannow
+    Write-Host "Running SFC" -ForegroundColor Green
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Current Time: $time"
+    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
+
+    sfc.exe /scannow | Tee-Object -Variable container
     #Splits them into groups
     $container = $container -split " "
     $newContainer = [System.Collections.ArrayList]::new()
@@ -320,64 +848,158 @@ function sfc_log {
         }
     } 
 
+    $log = $LOGSPATH[2]
     $time = Get-Date -Format "HH:mm:ss"
-    #Output it to a file
-    Out-File $LOGSPATH\sfc.txt -InputObject "Starting SFC at: $time" -Append
-
-    for ($i=0; $i -lt $newContainer.Count; $i++) {
-        if ($newContainer[$i] -eq ".") {
-            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append
-        } else {
-            Out-File $LOGSPATH\sfc.txt -InputObject $newContainer[$i] -Append -NoNewline
-        }
-    }
+    $sfc_log = ("SFC Time started at: " + $time + "`n" + $container)
+    log_data -name_of_file "SFC" -data $sfc_log
 }
 
+function checkdisk_no_log {
+    Param (
+        [Parameter(Mandatory=$false)][bool]$runOnBootDrive
+    )
+    $drives_run_on = @()
+    foreach($drive in $Global:bitLockerDrives) {
+        try {
+            if ($drive.driveLetter -eq "C:") {
+                if ($runOnBootDrive -eq $false) {
+                    continue
+                }
+            }
+            Write-Host "On Drive " $drive.driveLetter
+            Start-Sleep 1
+            $test = (echo y | chkdsk $drive.driveLetter /f /r /x /b)
+            if ($test -contains "Windows supports re-evaluating bad clusters on NTFS volumes only.") {
+                $no_cap = chkdsk $drive.driveLetter
+            }
+            $drives_run_on += $drive.driveLetter
+        }
+        catch {
+            Write-Host "Unable to run CHKDSK on drive: " $drive.driveLetter -ForegroundColor Red
+            Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            continue
+        
+        }
+    }
+    return $drives_run_on
+}
+
+function checkdisk_log {
+    $log = $Global:LOGSPATH[2]
+    $time = Get-Date -Format "HH:mm:ss"
+    Write-Host "Running CHKDSK" -ForegroundColor Green
+    #Out-File $log\chkdsk.txt -InputObject "Starting CHKDSK at: $time" -Append
+    $chkdsk_time = "CHKDSK Time Started at: " + $time
+    $chkdsk_log = ""
+    $container = @()
+    foreach($drive in $Global:unlockedDrives) {
+        #Out-File $log\chkdsk.txt -InputObject ("Running CHKDSK on drive: " + [String]$drive.driveLetter) -Append
+        try {
+            echo y | chkdsk $drive.driveLetter /f /r /x /b | Tee-Object -Variable container
+            if ($container -contains "Cannot lock current drive.") {
+                $container = @("Passed 'Y' to run offline!")
+            }
+            if ($container -contains "Windows supports re-evaluating bad clusters on NTFS volumes only.") {
+                $container = @()
+                chkdsk $drive.driveLetter | Tee-Object -Variable container
+            }
+        }
+        catch {
+            Write-Host "Unable to run CHKDSK on drive: " $drive.driveLetter -ForegroundColor Red
+            Start-Sleep 1.5
+            continue
+        }
+        $container += "Run on drive: " + $drive.driveLetter
+        $chkdsk_log = ($chkdsk_time + "`n" + $container)
+        log_data -name_of_file ("Checkdisk_drive_" + $drive) -data $chkdsk_log
+        $chkdsk_log = ""
+        $container = @()
+    }
+
+    #echo y | chkdsk C: /f /r /x /b | Tee-Object -FilePath $log\chkdsk.txt
+}
 function StandardCleanupNoLogs {
     Clear-Host
     Write-Host "Starting standard cleanup with no logs..."
     Dism.exe /online /cleanup-image /restorehealth
     sfc.exe /scannow
-    echo y | chkdsk C: /f /r /x /b
-    countdown(10, "SHUTTING DOWN")
-    shutdown /r /t 0
+    checkdisk_no_log
+    countdown -seconds 10 -message "SHUTTING DOWN"
+    shutdown /f /r /t 0
 }
 
 function StandardCleanupLogs {
     Clear-Host
+    if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1) {
+        StandardCleanupNoLogs
+    }
+    clear_last_run
+    $log = $Global:LOGSPATH[2]
+
     Write-Host "Starting standard cleanup with logs in user account folder"
-    Write-Host "Logs will be located in C:\Users\$env:USERNAME\logs"
+    Write-Host "Logs will be located in " $log
+
+    run_dism
+    
+    sfc_log
+
+    # echo y | chkdsk C: /f /r /x /b 
+    
+    checkdisk_log
+
+    countdown -seconds 10 -message "SHUTTING DOWN"
+    shutdown /f /r /t 0
+    getkeyPress
+}
+
+function run_dism {
+    Param (
+        [Parameter(Mandatory=$false)][bool]$logs=$True,
+        [Parameter(Mandatory=$false)][string]$source=""
+    )
     Write-Host "Running DISM" -ForegroundColor Green
     $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Start Time: "
+    Write-Host "Current Time: $time"
     Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    Out-File $LOGSPATH\DISM.txt -InputObject "Time Started $time" -Append
-    Dism.exe /online /cleanup-image /restorehealth >> $LOGSPATH\DISM.txt
-    Write-Host "Running SFC" -ForegroundColor Green
-    $time = Get-Date -Format "HH:mm:ss"
-    Write-Host "Start Time: "
-    Write-Host "DO NOT CLOSE THIS WINDOW" -ForegroundColor Red
-    sfc_log
-    echo y | chkdsk C: /f /r /x /b 
-    Write-Host "Running CHKDSK" -ForegroundColor Green
-    countdown(10, "SHUTTING DOWN")
-    shutdown /r /t 0
-    getkeyPress
+    $dism_time = "DISM Time Started at: " + $time
+    $dism_log = ""
+    $container = @()
+    if ($logs) {
+        if ($source -eq "") {
+            Dism.exe /online /cleanup-image /restorehealth | Tee-Object -Variable container
+        } else {
+            Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -Variable container
+        }
+        
+        $dism_log = ($dism_time + "`n" + $container)
+        log_data -name_of_file "DISM" -data $dism_log
+    } else {
+        if ($source -eq "") {
+            Dism.exe /online /cleanup-image /restorehealth
+        } else {
+            Dism.exe /online /cleanup-image /restorehealth /source:$source
+        }
+    }
+    return
 }
 
 function CreateAdminAccount {
     Clear-Host
-    Write-Host "Creating admin account..."
+    Write-Host "Activating admin account..."
     Try {
         net user administrator /active:yes
     } Catch {
-        Write-Host "Unable to create admin account!" -ForegroundColor Red
+        Write-Host "Unable to activate admin account!" -ForegroundColor Red
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
         return
     }
-    Write-Host "Switching to admin account..."
-    Start-Process powershell -Verb runAs
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 }
 
@@ -389,170 +1011,167 @@ function DisableAdminAccount {
     } Catch {
         Write-Host "Unable to disable admin account!" -ForegroundColor Red
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
         return
     }
     Write-Host "Admin account disabled!" -ForegroundColor Green
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 }
 
-function DisableBitLocker {
-    Clear-Host
-    Write-Host "Disabling BitLocker..."
-    Try {
-        manage-bde -off C:
-    } Catch {
-        Write-Host "Unable to disable BitLocker!" -ForegroundColor Red
-        Start-Sleep 1.5
-        return
-    }
-    Write-Host "BitLocker disabled!" -ForegroundColor Green
-    Start-Sleep 1.5
-    return
-    
-}
-
-function BootOptions {
-    Clear-Host
-    Write-Host "Boot Options:" -ForegroundColor Green
-    Write-Host "1) Boot into UEFI settings"
-    Write-Host "2) Boot into advanced startup"
-    Write-Host "3) Reboot"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+function boot_options {
+    $messages = @("Boot Options", "Choose an option:", "Boot into UEFI settings", "Boot into advanced startup", "Reboot", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            Clear-Host
-            countdown(3, "Booting into UEFI Settings")
+            countdown -seconds 3 -message "Booting into UEFI Settings"
             shutdown /r /f /fw /t 00
         }
         2 {
-            Clear-Host
-            countdown(3, "Booting into Advanced Startup")
+            countdown -seconds 3 -message "Booting into Advanced Startup"
             shutdown /r /f /o /t 00
         }
         3 {
-            Clear-Host
-            countdown(3, "Rebooting")
+            countdown -seconds 3 -message "Rebooting"
             shutdown /r /f /t 00
         }
-        "q" {
+        4 {
             main_menu
         }
     }
 }
 
-function ShowOptions {
-    Clear-Host
-    if ($logs -eq 0) {
-        Write-Host "Logs turned off!" -ForegroundColor Red
+function show_options {
+    if ($Global:LOGSPATH -eq 0) {
+        $messages = @("Options", "Logs turned off!", "Turn on logs", "Clear this scripts data and recreate folder", "Clear all data and DO NOT recreate it", "Back to main menu")
     } else {
-        Write-Host "Logs turned on!"  -ForegroundColor Green
+        $messages = @("Options", "Logs turned on!", "Turn off logs", "Clear this scripts data and recreate folder", "Clear all data and DO NOT recreate it", "Back to main menu")
     }
-    Write-Host "Options" -ForegroundColor Green
-    if ($logs -eq 0) {
-        Write-Host "1) Turn on logs"
-    } else {
-        Write-Host "1) Turn off logs"
-    }
-    Write-Host "2) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            if ($logs -eq 0) {
-                
-                $logs = create_folders
-               
+            if ($Global:LOGSPATH -eq 0) {
+                $Global:LOGSPATH = create_folders
             } else {
-                $logs = 0
+                $Global:LOGSPATH = 0
             }
         }
         2 {
-            continue
+            clear_logs
+        }
+        3 {
+            full_clear_logs
+        }
+        4 {
+            main_menu
         }
     }
+}
+
+function clear_logs {
+    Clear-Host
+    Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\temp\pc_cleanup"
+    $Global:LOGSPATH = create_folders
+    Write-Host "Logs cleared!" -ForegroundColor Green
+    Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
+    return
+}
+
+function full_clear_logs {
+    Clear-Host
+    Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\temp\pc_cleanup"
+    Write-Host "All data cleared!" -ForegroundColor Green
+    $Global:LOGSPATH = 0
+    Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
+    return
+
+}
+
+function clear_last_run {
+    Clear-Host
+    Remove-Item -r "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run\*"
+    return
 }
 
 function create_folders {
-    if (Test-Path -Path C:\Users\$env:USERNAME\logs) {
+    # New log file location
+    # C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
+    $LOGSPATH = ""
+    if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup) {
         $date = Get-Date -Format "MM-dd-yyyy"
-        if (Test-Path -Path C:\Users\$env:USERNAME\logs\$date) {
+        if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date) {
             Try {
                 $time = Get-Date -Format "HH_mm_ss"
-                mkdir C:\Users\$env:USERNAME\logs\$date\$time
-                $LOGSPATH = "C:\Users\$env:USERNAME\logs\$date\$time"
-                return 1
+                mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time
+                $LOGSPATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date\$time"
+                if (Test-Path -Path C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run) {
+                    $Global:LASTRUN_PATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run"
+                } else {
+                    Try {
+                        mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run
+                        $Global:LASTRUN_PATH = "C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\last_run"
+                    } Catch {
+                        Write-Host "Unable to create last run folder!" -ForegroundColor Red
+                        Write-Host "Press any key to continue..."
+                        getKeyPress
+                    }
+                }
+                return (1, $LOGSPATH)
             } Catch {
                 Write-Host "Unable to create log folder!" -ForegroundColor Red
-                Start-Sleep 1.5
-                return 0
+                Write-Host "Press any key to continue..."
+                getKeyPress
+                return (0, $LOGSPATH)
         }
     }
-            Try {
-                mkdir C:\Users\$env:USERNAME\logs\$date
-                create_folders
-            } Catch {
-                Write-Host "Unable to create log folder!" -ForegroundColor Red
-                Start-Sleep 1.5
-                return 0
-            }
-        } else {
-            Try {
-                mkdir C:\Users\$env:USERNAME\logs
-                create_folders
-            } Catch {
+        Try {
+            mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs\$date
+            create_folders
+        } Catch {
             Write-Host "Unable to create log folder!" -ForegroundColor Red
-            Start-Sleep 1.5
-            return 0
-            }
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            return (0, $LOGSPATH)
         }
+    } else {
+        Try {
+            mkdir C:\Users\$env:USERNAME\AppData\Local\Temp\pc_cleanup\logs
+            create_folders
+        } Catch {
+        Write-Host "Unable to create log folder!" -ForegroundColor Red
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return (0, $LOGSPATH)
+        }
+    }
 }
 
-function recoverDeletedUsersFolders {
-    [Parameter(Mandatory=$true)][string]$user
-    Start-Sleep 2
-    $choice = confirm("Copy deleted user: " +$user+ " folders?")
-    if ($choice -eq 1) {
-        Clear-Host
-        Write-Host "Copying deleted user: "$user  " folders"
-        $path = "C:\Users\$user"
-        $dest = "C:\Users\$env:USERNAME\$user"
-        Try {
-            $i = 0
-            while ($true) {
-                $i++
-                if (Test-Path -Path $dest) {
-                    $dest = "C:\Users\$env:USERNAME\$user$i"
-                    continue
-                } else {
-                    break
-                    Write-Host "In Loop"
-                    
-                }
-            }
-            mkdir "C:\Users\$env:USERNAME\$user$i"
-        } catch {
-            Write-Host "Unable to create folder to move data to!" -ForegroundColor Red
-            Start-Sleep 1.5
-            return
-        }
-        
-        $dest = "C:\Users\$env:USERNAME\$user"
-        Try {
-            robocopy $path $dest /MIR /R:1 /W:1 /copy:t /dcopy:T /MT:128 /log:$LOGSPATH\$user.txt /tee /j
-            Try {
-                Remove-Item -r -force $path
-            } catch {
-                Write-Host "Unable to delete " $user " folder!" -ForegroundColor Red
-                Start-Sleep 1.5
-                return
-            }
-        } Catch {
-            Write-Host "Unable to copy users folders!" -ForegroundColor Red
-            Start-Sleep 1.5
-            return
-        }
+function log_data {
+    Param (
+        [Parameter(Mandatory=$True)][string]$name_of_file,
+        [Parameter(Mandatory=$True)][string]$data
+    )
+    if ($LOGSPATH -eq 0 -or $LOGSPATH[2] -eq 1 -or $Global:LASTRUN_PATH -eq 0) {
+        throw "Something went terribly wrong, please report this error. Code 01"
+        # Def should not get to this point, will add more error checking later, just trying to get a rough idea working
     }
+    $log = $Global:LOGSPATH[2]
+    $last_run = $Global:LASTRUN_PATH
+    $data = $data.replace("[", "`n[")
+    $data = $data.replace("]", "]`n")
+    $data = $data -replace '\D\.', ". `n"
+    Try {
+        Out-File $log\$name_of_file.txt -InputObject $data
+        Out-File $last_run\$name_of_file.txt -InputObject $data
+    } catch {
+        throw "Please run without logs, we don't have access to write logs!"
+    }
+    return
 }
 
 function getListOfUsers {
@@ -567,47 +1186,43 @@ function getListOfUsers {
     return $users
 }
 
-function selectUser {
-    Clear-Host
-    $users = getListOfUsers
-    Write-Host "Choose a user:"
-    for($i=0; $i -lt $users.count; $i++) {
-        Write-Host $i")" $users[$i]
+function select_user {
+    $messages = @("Select a user", "Choose a user:")
+    $messages += getListOfUsers
+    $messages += "(q) Back"
+    $result = display_message -messages $messages -selection 2
+    if ($result -eq $messages.Count-1) {
+        user_control
+    } else {
+        return $messages[$result]
     }
-    Write-Host "q) Back"
-    $choice = Read-Host "Enter a number"
-    if ($choice -eq 'q') {
-        return
-    }
-    Write-Host "You chose: " $users[$choice]
-    Start-Sleep 1
-    Clear-Host
-    return $users[$choice]
 }
 
-function resetPassword {
+function reset_password {
     Clear-Host
-    $user = selectUser
-    $result = confirm("Resetting password for user: "+$user)
+    $user = select_user
+    $result = confirm -message ("Resetting password for user: " + $user)
     if ($result -eq 1) {
         Try {
             net user $user *
         } Catch {
             Write-Host "Unable to reset password!" -ForegroundColor Red
             Start-Sleep 1.5
-            return
         }
         Write-Host "Password reset!" -ForegroundColor Green
         Start-Sleep 1.5
-        return
     } else {
         return
     }
+    Write-Host "Press any key to continue..."
+    getKeyPress
+    return
+
 }
 
 function deleteUser {
     Clear-Host
-    $user = selectUser
+    $user = select_user
     $result = confirm("Deleting user: "+$user)
     if ($result -eq 1) {
         $result2 = confirm("CONFIRM THE ACTION: Deleting user: "+$user)
@@ -619,10 +1234,10 @@ function deleteUser {
                 Start-Sleep 1.5
                 return
             }
-            Clear-Host
             Write-Host "User deleted!" -ForegroundColor Green
-            Start-Sleep 1.5
-            recoverDeletedUsersFolders($user)
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            Clear-Host
         } else {
             return
         }
@@ -631,27 +1246,22 @@ function deleteUser {
     }
 }
 
-function createNewUser {
-    Clear-Host
-    Write-Host "Username for user:" -ForegroundColor Green
+function create_new_user {
+    display_single_message -message "Username for user:"
     $username = Read-Host
-    Clear-Host
-    Write-Host "Full Name for user:" -ForegroundColor Green
-    $fullName = Read-Host
-    Clear-Host
-    Write-Host "Type in a password for the new user:" -ForegroundColor Green
+    display_single_message -message "Type in a password for the new user:"
     $password = Read-Host -AsSecureString
-    Clear-Host
-    Write-Host "Description for user:" -ForegroundColor Green
+    display_single_message -message "Full Name for user:"
+    $fullName = Read-Host
+    display_single_message -message "Description for user:"
     $description = Read-Host
-    Clear-Host
-    $result = confirm("Add to local administrators group?")
+    $result = confirm -message "Add to local administrators group?"
     if ($result -eq 1) {
         $group = 'Administrators'
     } else {
         $group = 'Users'
     }
-    Write-Host "Creating user $username..."
+    display_single_message -message "Creating user $username"
     Try {
         if ($password) {
             New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires -NoPassword
@@ -659,8 +1269,10 @@ function createNewUser {
             New-LocalUser -Name $username -FullName $fullName -Description $description -AccountNeverExpires $password
         }
     } Catch {
-        Write-Host "Unable to create user!" -ForegroundColor Red
+        display_single_message -message "Unable to create user!" -ForegroundColor Red
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
         return
     }
 
@@ -669,42 +1281,96 @@ function createNewUser {
             Add-LocalGroupMember -Group "Administrators" -Member $username
         }
     } catch {
-        Write-Host "Unable to add user to Administrators group!" -ForegroundColor Red
+        display_single_message -message "Unable to add user to Administrators group!" 
         Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+    getKeyPress
         return
     }
 
-    Write-Host "User created!" -ForegroundColor Green
+    display_single_message -message "User created!"
     Start-Sleep 1.5
-    return
-
+    Write-Host "Press any key to continue..."
+    getKeyPress
 }
 
-function userControl {
-    Clear-Host
-    Write-Host "User Control" -ForegroundColor Green
-    Write-Host "Choose an option:"
-    Write-Host "1) Reset password"
-    Write-Host "2) Delete user"
-    Write-Host "3) Create new user"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+function user_control {
+    $messages = @("User Control", "Choose an option:", "Create new user", "Reset password", "Delete user", "Create Admin Account", "Disable Admin Account", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            resetPassword
+            create_new_user
         }
         2 {
-            deleteUser
+            reset_password
         }
         3 {
-            createNewUser
+            deleteUser
         }
-        "q" {
-            mainMenu
+        4 {
+            CreateAdminAccount
+        }
+        5 {
+            DisableAdminAccount
+        }
+        6 {
+            main_menu
         }
     }
+}
 
-    userControl
+function toggle_new_context_menu {
+    $path = "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
+    if(Test-Path $path) {
+        try {
+            reg delete "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f
+            display_single_message -message "Turned it on!"
+            Start-Sleep 1.5
+        } catch {
+            Write-Host "Unable to turn off new context menu" -ForegroundColor Red
+            Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            return
+        }
+    } else {
+        try {
+            reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve
+            display_single_message -message "Turned it off!"
+            Start-Sleep 1.5
+        } catch {
+            Write-Host "Unable to turn off new context menu!" -ForegroundColor Red
+            Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            return
+        }
+    }
+    display_single_message -message "Please restart your computer!"
+    Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
+    return
+}
+
+function new_set_up_settings_menu {
+    $messages = @("New Setup Settings / OS Settings", "Choose an option:", "Reset Windows Update", "Change Time Zone", "Toggle new context menu","Create new User from OOBE", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
+        1 {
+            resetWindowsUpdate
+        }
+        2 {
+            change_time_zone
+        }
+        3 {
+            toggle_new_context_menu
+        }
+	4 {
+	    skip_windows_account_creation
+	}
+        5 {
+            main_menu
+        }
+    }
 }
 
 
@@ -734,154 +1400,143 @@ function resetWindowsUpdate {
     Clear-Host
     Write-Host "Windows Update reset!" -ForegroundColor Green
     Start-Sleep 1.5
+    Write-Host "Press any key to continue..."
+    getKeyPress
     return
 }
 
-function removeDefaultPackages {
-    Clear-Host
-		Clear-Host
-		Write-Host "Still under construction" -ForegroundColor Red
-		Start-Sleep 1.5
-		return
-    Write-Host "Deleting default packages" -ForegroundColor Green
-    Write-Host "Please wait..." -ForegroundColor Red
-
-    # Removing default packages
-    Get-AppxPackage -AllUsers | Remove-AppxPackage
-
-    # Finished, explain to user
-    Clear-Host
-    Write-Host "Default packages removed!" -ForegroundColor Green
-    Start-Sleep 1.5
-    return
-}
-
-class FindPackage {
-    [string]$name
-    [string]$id
-    [bool]$checked
-    Package([string]$name, [string]$id, [bool]$checked) {
-        $this.name = $name
-        $this.id = $id
-        $this.checked = $checked
-    }
-    [void] toggle() {
-        if ($this.checked) {
-            $this.checked = $false
-        } else {
-            $this.checked = $true
-        }
-    }
-}
-
-
-function reinstallBasicPackages {
-		Clear-Host
-		Write-Host "Still under construction" -ForegroundColor Red
-		Start-Sleep 1.5
-		return
-    Clear-Host
-    Write-Host "Please select which packages to install:" -ForegroundColor Green
-    $selector = 0
-
-    $packages = @(FindPackage("Windows Camera"), FindPackage("Photos"))
-}
-
-
-
-# Settings for new setups or for existing set ups
-# To be added onto in the future
-# 1) Will reset the windows update that sometimes bugs out with updates. It will reset the folders related and reset the service involved
-# 2) Removes all the default packages, usually noted as bloatware, downside is it removes camera, calculator, photos, and other general use items as well
-# 3) Reinstalls the basic packages that are removed from option 2, but will present it as a list
-
-function newSetUpSettings {
-    Clear-Host
-    Write-Host "This is still being worked on, come back later!" -ForegroudColor -Red
-    Write-Host "New Setup Settings / OS Settings" -ForegroundColor Green
-    Write-Host "Choose an option:"
-    Write-Host "1) Reset Windows Update"
-    Write-Host "2) Remove all default preinstalled packages"
-    Write-Host "3) Reinstall basic packages (Camera, Calculator, etc.)"
-    Write-Host "q) Back to main menu"
-    $option = getKeyPress
-    switch ($option) {
+function change_time_zone {
+    $messages = @("Change Time Zone", "Choose a time zone:", "Eastern Time", "Central Time", "Mountain Time", "Pacific Time", "Back to main menu")
+    switch((display_message -messages $messages -selection 2)-1) {
         1 {
-            resetWindowsUpdate
+            Set-TimeZone -Id "Eastern Standard Time"
         }
         2 {
-            removeDefaultPackages
+            Set-TimeZone -Id "Central Standard Time"
         }
         3 {
-            reinstallBasicPackages
+            Set-TimeZone -Id "Mountain Standard Time"
         }
-        "q" {
-            mainMenu
+        4 {
+            Set-TimeZone -Id "Pacific Standard Time"
+        }
+        5 {
+            main_menu
         }
     }
+    try {
+        Start-Service -Name "W32Time"
+        W32tm.exe /resync
+    } 
+    catch {
+        try {
+            Start-Service -Name "W32Time" -Force
+            W32tm.exe /resync /force
+        } 
+        catch {
+            Clear-Host
+            Write-Host "Unable to resync time, service unable to start" -ForegroundColor red
+            Start-Sleep 1.5
+            Write-Host "Press any key to continue..."
+            getKeyPress
+            return
+        }
+    }
+    Display_single_message -message "Time resynced!"
+    main_menu
 }
 
+function skip_windows_account_creation {
+    Clear-Host
+    display_single_message -message "Use this tool to create a new user with the OOBE environment."
+    Start-Sleep 1.5
+    Start ms-cxh:localonly
+    $messages = @("Tool should have launched. After you create a user, it will auto login!", "Press the return key to return to the menu!")
+    display_message -messages $messages -top 1
+    return # Redundent, but I want it here.
+}
 
-
-
-
-function MainMenuFunction {
-    while ($true) {
-        Clear-Host
-        if ($logs -eq 0) {
-            Write-Host "Logs turned off!" -ForegroundColor darkRed
-        } else {
-            Write-Host "Logs turned on!" -ForegroundColor darkGreen
+function view_last_results {
+    Clear-Host
+    if ($Global:LASTRUN_PATH -eq 0) {
+        display_single_message -message "No last run data!"
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+    $log = $Global:LASTRUN_PATH
+    
+    try {
+        $container = Get-ChildItem -Path $log -Force
+    } catch {
+        display_single_message -message "Unable to check for last run!"
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+    if ($container.Length -eq 0) {
+        display_single_message -message "No last run data found!"
+        Start-Sleep 1.5
+        Write-Host "Press any key to continue..."
+        getKeyPress
+        return
+    }
+    foreach ($file in $container) {
+        try {
+            Get-Content -Path $log\$file -Raw | oh #more -s
+            Write-Host "Press any key to continue..."
+            getKeyPress
+        } catch {
+            display_single_message -message ("Unable to open " + $file)
         }
-        Write-Host "Welcome to the Quick Fix Script!" -ForegroundColor Blue
-        Write-Host "Main Menu "$VERSION -ForegroundColor Green
-        Write-Host "1) DISM, SFC, CHKDSK, and reboot"
-        Write-Host "2) Create Admin account, and switch to it"
-        Write-Host "3) Disable Admin account"
-        Write-Host "4) Disable BitLocker"
-        Write-Host "5) Boot Options"
-        Write-Host "6) Options"
-        Write-Host "7) User Control"
-        Write-Host "8) New Setup Settings / OS Settings"
-        Write-Host "q) Exit"
-        $choice = getKeyPress
+    }
+    return
+}
 
-        switch ($choice) {
+function main_menu {
+    while ($True) {
+        $messages = @(("V" + $VERSION),"Main Menu", "Repair Menu", "View last run", "User Control", "BitLocker", "Boot Options", "New Setup Settings / OS Settings", "Patch Notes", "Options", "Exit")
+        switch((display_message -messages $messages -top 2 -selection 2)-1) {
             1 {
-                StandardCleanup
+                repair_menu
             }
             2 {
-                CreateAdminAccount
+                view_last_results
             }
             3 {
-                DisableAdminAccount
+                user_control
             }
             4 {
-                DisableBitLocker
+                BitLocker
             }
             5 {
-                BootOptions
+                boot_options
             }
             6 {
-                ShowOptions
+                new_set_up_settings_menu
             }
             7 {
-                userControl
+                changeLog
             }
             8 {
-                newSetUpSettings
+                show_options
             }
-            'q'{
-                Clear-Host
+            9 {
                 exit
             }
         }
     }
 }
 
-
 # Causes issues.
 #$ui.WindowTitle = "Quick Fix Script"
 
-$LOGS = create_folders
-# MainMenu
+$Global:LOGSPATH = create_folders
+bitlocker_helper
+
+# main_menu
+
+
+run
