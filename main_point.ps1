@@ -1,4 +1,6 @@
 
+#Requires -RunAsAdministrator
+
 #Test change to verify git is working
 
 # Redoing the code almost entirely 
@@ -176,6 +178,7 @@ class MainMenu : Display_Util {
 
 class Repair_Menu : Display_Util {
     [string] $source = ""
+    [int] $dots = 10
 
     [Message[]] $original_messages = @(
         [Message]::new("Repair Menu", "Black", "White", { }, $false),
@@ -201,24 +204,40 @@ class Repair_Menu : Display_Util {
 
     $dism_job = {
         param (
-            [string]$source = "",
-            [string]$LASTRUN_PATH = ""
+            [string]$source,
+            [string]$LASTRUN_PATH
             )
+
+
         if ($source -eq "") {
-            $output = Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath C:\Users\hfmar\Dism.txt #-FilePath $LASTRUN_PATH + "\DISM.txt"
+            $output = Dism.exe /online /cleanup-image /restorehealth | Tee-Object -FilePath ($LASTRUN_PATH + "\DISM.txt")
         } else {
-            $output = Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath $LASTRUN_PATH + "\DISM.txt"
+            $output = Dism.exe /online /cleanup-image /restorehealth /source:$source | Tee-Object -FilePath ($LASTRUN_PATH + "\DISM.txt")
         }
         
     }
 
+    $sfc_job = {
+        param (
+            [string]$LASTRUN_PATH
+        )
+
+        $output = sfc.exe /scannow | Tee-Object -FilePath ($LASTRUN_PATH + "\SFC.txt")
+    }
+
+
     [void] dism_output([string]$log) {
-        Write-Host "Running DISM!"
+        Write-Host "Running DISM!" -ForegroundColor Green
         if ($this.source -eq "") {
             Write-Host "With no source file!"
         } else {
             Write-Host "With source file: " $this.source
         }
+        Write-Host "Logs will be located in " $log
+    }
+
+    [void] sfc_output([string]$log) {
+        Write-Host "Running SFC" -ForegroundColor Green
         Write-Host "Logs will be located in " $log
     }
 
@@ -246,12 +265,37 @@ class Repair_Menu : Display_Util {
             $old_content = ""
             $count = 1
             $job = Start-Job -scriptBlock $this.dism_job -ArgumentList $this.source, $global:LASTRUN_PATH
-            while($true) {
+            $done = $false
+            while($done -eq $false) {
                 try{
-                    $path = C:\Users\hfmar\Dism.txt #$global:LASTRUN_PATH + "\DISM.txt"
+                    $path = $global:LASTRUN_PATH + "\DISM.txt"
+                    if ($job.State -ne "Running" -and $job.State -ne "NotStarted") {
+                        $done = $true
+                        $contents = Get-Content -Path $path
+                        $contents = $contents -split "`n" 
+                        $contents = $contents | Where-Object {$_ -ne ""} # Remove empty lines
+                        $contents = $contents.Trim()
+                        Clear-Host
+                        $this.dism_output($log)
+                        $filter_this = $contents[-5..$contents.length - 1]
+                        foreach ($message in $filter_this) {
+                            if ($message -match "\[*]") {
+                                continue
+                            } else {
+                                Write-Host $message
+                            
+                            }
+                        }
+                        Write-Host "DISM has completed!" -ForegroundColor Green
+                        Start-Sleep 10
+                        break
+
+                    }
                     if (Test-Path $path) {
                         $contents = Get-Content -Path $path
                         if ($contents -ne $null) {
+                            $contents = $contents -split "`n" 
+                            $contents = $contents | Where-Object {$_ -ne ""} # Remove empty lines
                             $contents = $contents.Trim()
                             if ($old_content -ne $contents[-1]) {
                                 Clear-Host
@@ -271,18 +315,117 @@ class Repair_Menu : Display_Util {
                         }
                     }
                 } catch {
-
+                    Write-Host "Error: " $_.Exception.Message
                 }
                 Start-Sleep 1
 
-                # Write-Host -noNewLine " ."
-                # $count += 1
+                Write-Host -noNewLine " ."
+                $count += 1
 
-                # if ($count -eq 5) {
-                #     $count = 1
-                #     $this.dism_output($log)
-                #     Clear-Host -noNewLine $old_content
-                # }
+                if ($count -eq $this.dots) {
+                    $count = 1
+                    $this.dism_output($log)
+                    Clear-Host -noNewLine $old_content
+                }
+            }
+        }
+    }
+
+    [void] sfc() {
+        if ($global:LOGSPATH -eq 0) {
+            sfc.exe /scannow
+
+            start-sleep 3
+        } else {
+            $log = $global:LOGSPATH[2]
+            $global:options_menu.clear_last_run()
+            Write-Host "Running SFC"
+            Write-Host "Logs will be located in " $log
+            Write-Host "Waiting on job to start..."
+            
+            $old_content = ""
+            $count = 1
+
+            $job = Start-Job -scriptBlock $this.sfc_job -ArgumentList $global:LASTRUN_PATH
+            $done = $false
+
+            while(-not $done) {
+                try{
+                    $path = $global:LASTRUN_PATH + "\SFC.txt"
+                    if ($job.State -ne "Running" -and $job.State -ne "NotStarted") {
+                        $done = $true
+                        $contents = Get-Content -Path $path
+                        $contents = $contents -split "`n" 
+                        $contents = $contents | Where-Object {$_ -ne ""} # Remove empty lines
+                        
+                        $contents = $contents.Trim()
+                        $filter_this = $contents[-5..-1]
+                        $cleaned_text = @()
+                        
+                        Clear-Host
+                        $this.sfc_output($log)
+                        
+
+                        foreach ($message in $filter_this) { Write-Host $message }
+                        Write-Host "SFC has completed!" -ForegroundColor Green
+                        Start-Sleep 10
+                        break
+                    }
+                    if (Test-Path $path) {
+                        # File path exists, we can check it now
+                        $contents = Get-Content -Path $path
+                        if ($contents -ne $null) { # Making sure the contents are not nothing
+                            # Splitting the contents into an array
+                            $contents = $contents -split "`n" 
+                            $contents = $contents | Where-Object {$_ -ne ""} # Remove empty lines
+                            $contents = $contents.Trim()
+                            
+                            # Seeing if its the same stuff we already have on the screen
+                            if ($old_content -ne $contents[-1]) {
+                                # If it is different, then update with the new stuff
+                                Clear-Host
+                                $this.sfc_output($log)
+                                Write-Host -NoNewLine $contents[-1]
+                                $old_content = $contents[-1]
+                            }
+                        } else {
+                            # If the contents are null, then we need to update the screen
+                            if ($old_content -ne "Waiting on a return value.") {
+                                $old_content = "Waiting on a return value."
+                                Clear-Host
+                                $this.sfc_output($log)
+                                Write-Host -NoNewLine $old_content
+                            }
+                            
+                        
+                        }
+                    } else {
+                        # If the file path is null, then we need to update the screen
+                        if ($old_content -ne "Waiting on a return value.") {
+                            $old_content = "Waiting on a return value."
+                            Clear-Host
+                            $this.sfc_output($log)
+                            Write-Host -NoNewLine $old_content
+                        }
+                    }
+                } catch {
+                    # Basic error catching
+                    Write-Host "Error: " $_.Exception.Message
+                }
+                # Wait 1 second to update the screen
+                Start-Sleep 1
+
+                # Add a dot to the screen every second, so the user knows it's not frozen.
+                Write-Host -noNewLine " ."
+                $count += 1
+
+                # if we have waited X seconds, then update the screen
+                if ($count -eq $this.dots) {
+                    $count = 1
+                    Clear-Host 
+                    $this.sfc_output($log)
+                    Write-Host -noNewLine $old_content
+                }
             }
         }
     }
@@ -443,7 +586,8 @@ function run {
     $global:boot_menu = [Boot_Menu]::new()
     $global:options_menu = [Options_Menu]::new()
     # $main_menu.display_messages()
-    $global:repair_menu.dism()
+    # $global:repair_menu.dism()
+    $global:repair_menu.sfc()
     exit
 }
 
