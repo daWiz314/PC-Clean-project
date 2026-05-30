@@ -236,19 +236,27 @@ class Repair_Menu : Display_Util {
     }
 
     [void] run_cleanup() {
-        if ($this.source) {
-            $this.find_source()
-        } else {
-            $this.source = ""
+        try {
+            if ($this.source) {
+                $this.find_source()
+            } else {
+                $this.source = ""
+            }
+            $this.ws_job = Start-Job -scriptBlock $this.wshell_background
+            $this.dism()
+            $this.sfc()
+            $this.ws_job.StopJob()
+            checkdisk_no_log
+            Copy-Item -Path $global:LASTRUN_PATH + "\*" -Destination $global:LOGSPATH[2] -Recurse
+            Write-Host "Standard cleanup has completed!" -ForegroundColor Green
+        } catch {
+            Write-Host "Error: " $_.Exception.Message
+            Write-Host $_.InvocationInfo
+            Write-host $_.ScriptStackTrace
+            Write-Host $_.TargetSite
+            Write-Host "Press any key to continue..."
+            getKeyPress
         }
-        $this.ws_job = Start-Job -scriptBlock $this.wshell_background
-        $this.dism()
-        getKeyPress
-        $this.sfc()
-        $this.ws_job.StopJob()
-        checkdisk_no_log
-        Copy-Item -Path $global:LASTRUN_PATH + "\*" -Destination $global:LOGSPATH -Recurse
-        Write-Host "Standard cleanup has completed!" -ForegroundColor Green
         shutdown /f /r /t 0
 
     }
@@ -322,10 +330,10 @@ class Repair_Menu : Display_Util {
                         $contents = $contents.Trim()
                         Clear-Host
                         $this.dism_output($log)
-                        $filter_this = $contents[-5..$contents.length - 1]
+                        $filter_this = $contents[-5..($contents.length - 1)]
                         foreach ($message in $filter_this) {
                             if ($message -match "\[*]") {
-                                continue
+                                continue 
                             } else {
                                 Write-Host $message
                             
@@ -361,6 +369,11 @@ class Repair_Menu : Display_Util {
                     }
                 } catch {
                     Write-Host "Error: " $_.Exception.Message
+                    Write-Host $_.InvocationInfo
+                    Write-host $_.ScriptStackTrace
+                    Write-Host $_.TargetSite
+                    Write-Host "Press any key to continue..."
+                    getKeyPress
                 }
                 Start-Sleep 1
 
